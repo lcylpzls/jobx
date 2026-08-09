@@ -11,8 +11,8 @@ import (
 
 // TestDrainTimer 覆盖定时器清理的两个分支。
 func TestDrainTimer(t *testing.T) {
-	fired := time.NewTimer(time.Millisecond)
-	time.Sleep(2 * time.Millisecond)
+	fired := time.NewTimer(20 * time.Millisecond)
+	time.Sleep(50 * time.Millisecond)
 	drainTimer(fired) // 已触发：丢弃 C 中的事件。
 	pending := time.NewTimer(time.Hour)
 	drainTimer(pending) // 未触发：直接停止。

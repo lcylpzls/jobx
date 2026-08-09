@@ -3,8 +3,8 @@
 自研单进程任务执行与调度库：异步任务、延迟任务、定时任务，
 与 errx / logx 生态打通。
 
-> 当前状态：**v0.2.0 已发布**。延迟、重试、冲突策略与状态/取消可用；
-> 调度器（cron）按 [docs/roadmap.md](docs/roadmap.md) 迭代中。
+> 当前状态：**v0.3.0 已发布**。调度器（cron/周期/一次性/简易方法）可用；
+> 可观测与性能打磨按 [docs/roadmap.md](docs/roadmap.md) 迭代中。
 
 ## 定位
 
@@ -65,10 +65,9 @@ _ = scheduler.DailyAt(3, 0, 0, "daily_report")
 `logx.Logger` 通过 `jobx.WithLogger` 注入；完整 API 见
 [docs/api.md](docs/api.md)。
 
-> 当前快速上手为**目标形态**：Scheduler 与简易调度方法将在
-> v0.3.0 落地；v0.2.0 已可用 `NewDispatcher` / `Handle` / `Submit` /
+> 当前快速上手为**目标形态**：`NewDispatcher` / `Handle` / `Submit` /
 > `SubmitAt` / `SubmitAfter` / `JobStatus` / `Cancel` / `Shutdown`
-> 及全部选项与错误值。
+> 与 Scheduler（Every/Cron/OneShot/简易方法）均已落地。
 
 ## License
 

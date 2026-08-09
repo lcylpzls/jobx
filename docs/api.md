@@ -199,7 +199,7 @@ func (d *Dispatcher) Shutdown(ctx context.Context) error
 func NewScheduler(dispatcher *Dispatcher, opts ...SchedulerOption) (*Scheduler, error)
 
 func WithLocation(loc *time.Location) SchedulerOption
-func WithLogger(logger logx.Logger) SchedulerOption
+func WithSchedulerLogger(logger logx.Logger) SchedulerOption
 ```
 
 `dispatcher` 必须非 nil；`loc` 默认为 `time.Local`。

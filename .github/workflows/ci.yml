@@ -68,6 +68,7 @@ jobs:
       - name: Fuzz short run (10s per target)
         run: |
           go test -run '^$' -fuzz '^FuzzSubmit$' -fuzztime=10s .
+          go test -run '^$' -fuzz '^FuzzCron$' -fuzztime=10s ./cron/
 
   vulncheck:
     runs-on: ubuntu-latest

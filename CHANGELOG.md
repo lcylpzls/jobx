@@ -2,6 +2,23 @@
 
 本项目遵循语义化版本（SemVer）。v1.0.0 之前允许破坏性变更。
 
+## [v0.3.0] - 2026-08-09
+
+### 新增
+
+- `jobx/cron` 自研 cron 解析器：
+  - 5/6 字段（秒 分 时 日 月 周），支持 `*`、`*/n`、`a-b`、`a,b,c`、`?`；
+  - `Next`（严格晚于，5 年扫描上限）与 `NextN`，时区保留；
+  - 日与周字段取并集，非法表达式返回 `ErrCronInvalid`（含字段定位）；
+  - fuzz 目标 `FuzzCron`；
+- Scheduler 调度器：
+  - `Every` / `Cron` / `OneShot`（触发后自动失效）；
+  - 简易调度包装：`EveryMinuteAt` / `EveryHourAt` / `DailyAt` /
+    `WeeklyAt`（内部等价 cron 表达式，参数越界报 `ErrCronInvalid`）；
+  - 条目管理：`List` / `Stop` / `Shutdown`（幂等、超时支持）；
+  - `WithLocation` 时区注入、`WithSchedulerLogger` 日志注入；
+  - 无解表达式、触发提交失败自动移除条目并记录日志。
+
 ## [v0.2.0] - 2026-08-09
 
 ### 新增

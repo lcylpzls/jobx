@@ -23,7 +23,7 @@
 - 任务状态查询与取消（`JobStatus` / `Cancel`）；
 - Metrics 注入（Queued/Running/Completed/Failed/Retried/Dropped/Skipped/Replaced）。
 
-## v0.3.0 — 调度器与 cron
+## v0.3.0 — 调度器与 cron（已发布）
 
 - `jobx/cron` 解析器（5/6 字段，`Next`/`NextN`，fuzz 覆盖）；
 - Scheduler：`Every` / `Cron` / `OneShot`；
