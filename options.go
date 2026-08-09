@@ -59,6 +59,7 @@ type config struct {
 	now         func() time.Time
 	metrics     Metrics
 	store       Store
+	traceHook   TraceHook
 }
 
 // defaultConfig 返回默认配置。
@@ -165,6 +166,14 @@ func WithClock(now func() time.Time) Option {
 			return errInvalidConfig("时间源不能为空")
 		}
 		c.now = now
+		return nil
+	}
+}
+
+// WithTraceHook 设置任务执行链路追踪钩子。
+func WithTraceHook(h TraceHook) Option {
+	return func(c *config) error {
+		c.traceHook = h
 		return nil
 	}
 }

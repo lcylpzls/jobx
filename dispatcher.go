@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -545,7 +546,9 @@ func (d *Dispatcher) runEntry(entry *jobEntry) {
 				}
 			}
 		}()
-		err = h.(Handler)(ctx, job)
+		spanCtx, end := d.traceStart(ctx, job)
+		err = h.(Handler)(spanCtx, job)
+		end(err)
 	}()
 	if d.isCancelled(job.ID) {
 		d.markStatus(job.ID, StatusCancelled)
@@ -565,6 +568,18 @@ func (d *Dispatcher) runEntry(entry *jobEntry) {
 	d.markStatus(job.ID, StatusSucceeded)
 	d.metricCompleted(job.Name, d.cfg.now().Sub(start))
 	d.logCompleted(job, d.cfg.now().Sub(start))
+}
+
+// traceStart 开始任务执行链路（无钩子时 no-op）。
+func (d *Dispatcher) traceStart(ctx context.Context, job Job) (context.Context, func(error)) {
+	if d.cfg.traceHook == nil {
+		return ctx, func(error) {}
+	}
+	return d.cfg.traceHook.Start(ctx, "jobx.execute",
+		TraceAttr{Key: "jobx.job_name", Value: job.Name},
+		TraceAttr{Key: "jobx.job_id", Value: job.ID},
+		TraceAttr{Key: "jobx.attempt", Value: strconv.Itoa(job.Attempt)},
+	)
 }
 
 // scheduleRetry 安排重试：按指数退避进入延迟堆。
