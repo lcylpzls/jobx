@@ -3,8 +3,7 @@
 自研单进程任务执行与调度库：异步任务、延迟任务、定时任务，
 与 errx / logx 生态打通。
 
-> 当前状态：**v0.5.0 已发布**。可选持久化接口与重启恢复可用；
-> 发布前终审按 [docs/roadmap.md](docs/roadmap.md) 进行中。
+> 当前状态：**v0.6.0 已发布**。规划路线全部收官，进入自主打磨阶段。
 
 ## 定位
 
@@ -64,6 +63,8 @@ _ = scheduler.DailyAt(3, 0, 0, "daily_report")
 
 `logx.Logger` 通过 `jobx.WithLogger` 注入；完整 API 见
 [docs/api.md](docs/api.md)。
+
+完整错误码清单见 [ERRORS.md](ERRORS.md)。
 
 ## 持久化（可选）
 
