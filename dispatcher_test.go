@@ -355,7 +355,7 @@ func TestShutdownRejects(t *testing.T) {
 
 // TestShutdownTimeout 覆盖关闭超时取消执行中任务。
 func TestShutdownTimeout(t *testing.T) {
-	d, err := NewDispatcher(WithWorkers(1))
+	d, err := NewDispatcher(WithWorkers(1), WithLogger(testLogger()))
 	if err != nil {
 		t.Fatal(err)
 	}

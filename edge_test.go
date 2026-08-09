@@ -9,15 +9,6 @@ import (
 	"time"
 )
 
-// TestDrainTimer 覆盖定时器清理的两个分支。
-func TestDrainTimer(t *testing.T) {
-	fired := time.NewTimer(20 * time.Millisecond)
-	time.Sleep(50 * time.Millisecond)
-	drainTimer(fired) // 已触发：丢弃 C 中的事件。
-	pending := time.NewTimer(time.Hour)
-	drainTimer(pending) // 未触发：直接停止。
-}
-
 // TestDelayHeapOrder 覆盖最小堆排序比较。
 func TestDelayHeapOrder(t *testing.T) {
 	d, err := NewDispatcher(WithWorkers(1))
@@ -245,6 +236,56 @@ func TestMetricsAll(t *testing.T) {
 	d3.Shutdown(context.Background())
 	if skipped.Load() == 0 || replaced.Load() == 0 {
 		t.Fatalf("冲突指标缺失：s=%d r=%d", skipped.Load(), replaced.Load())
+	}
+}
+
+// TestRetryBoundary 覆盖零重试边界（失败一次即终态失败）。
+func TestRetryBoundary(t *testing.T) {
+	d, err := NewDispatcher()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer d.Shutdown(context.Background())
+	var calls atomic.Int32
+	_ = d.Handle("task", func(context.Context, Job) error {
+		calls.Add(1)
+		return errors.New("失败")
+	})
+	id, err := d.Submit(context.Background(), "task", nil, WithRetry(0, time.Second))
+	if err != nil {
+		t.Fatal(err)
+	}
+	deadline := time.Now().Add(2 * time.Second)
+	for {
+		s, _ := d.JobStatus(id)
+		if s == StatusFailed {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("零重试应直接失败：%v", s)
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+	if calls.Load() != 1 {
+		t.Fatalf("零重试应只执行 1 次：%d", calls.Load())
+	}
+}
+
+// TestShutdownSubmitRace 覆盖关闭与提交并发竞态（配合 race 检测）。
+func TestShutdownSubmitRace(t *testing.T) {
+	for i := 0; i < 50; i++ {
+		d, err := NewDispatcher(WithWorkers(2), WithQueueSize(8))
+		if err != nil {
+			t.Fatal(err)
+		}
+		_ = d.Handle("task", func(context.Context, Job) error { return nil })
+		ctx := context.Background()
+		go func() {
+			for j := 0; j < 20; j++ {
+				_, _ = d.Submit(ctx, "task", nil)
+			}
+		}()
+		_ = d.Shutdown(ctx)
 	}
 }
 

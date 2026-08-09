@@ -204,6 +204,7 @@ func (d *Dispatcher) Shutdown(ctx context.Context) error {
 		close(d.stopCh)
 		d.ready.close()
 		d.shutdownErr = d.waitWorkers(ctx)
+		d.logShutdown()
 	})
 	return d.shutdownErr
 }
@@ -255,6 +256,7 @@ func (d *Dispatcher) applyConflict(entry *jobEntry) error {
 	case ConflictSkip:
 		if len(set) > 0 {
 			d.metricSkipped(entry.job.Name)
+			d.logSkipped(entry.job)
 			d.inFlightMu.Unlock()
 			return ErrSkipped
 		}
@@ -266,6 +268,7 @@ func (d *Dispatcher) applyConflict(entry *jobEntry) error {
 	}
 	if len(replaced) > 0 {
 		d.metricReplaced(entry.job.Name)
+		d.logReplaced(entry.job)
 	}
 	return nil
 }
@@ -358,21 +361,12 @@ func (d *Dispatcher) delayLoop() {
 		case <-timerC:
 			d.popDue()
 		case <-d.signal:
-			drainTimer(timer)
+			timer.Stop() // Go 1.23+ 同步通道：Stop 后无残留值。
 		case <-d.stopCh:
-			drainTimer(timer)
+			timer.Stop()
 			d.drainDelayed()
 			return
 		}
-	}
-}
-
-// drainTimer 停止定时器并丢弃可能的过期事件（幂等）。
-func drainTimer(t *time.Timer) {
-	t.Stop()
-	select {
-	case <-t.C:
-	default:
 	}
 }
 
@@ -713,6 +707,43 @@ func (d *Dispatcher) logRetry(job Job, retryAt time.Time, cause error) {
 		logx.Int(fieldAttempt, job.Attempt+1),
 		logx.String(fieldRetryAt, retryAt.Format(time.RFC3339Nano)),
 		logx.String("error", cause.Error()),
+	))
+}
+
+// logSkipped 记录任务跳过日志。
+func (d *Dispatcher) logSkipped(job Job) {
+	if d.cfg.logger == nil {
+		return
+	}
+	d.cfg.logger.Warn("jobx：同名任务在途，本次提交被跳过", logx.Fields(
+		logx.String(fieldJobID, job.ID),
+		logx.String(fieldJobName, job.Name),
+	))
+}
+
+// logReplaced 记录任务替换日志。
+func (d *Dispatcher) logReplaced(job Job) {
+	if d.cfg.logger == nil {
+		return
+	}
+	d.cfg.logger.Warn("jobx：同名旧任务已被替换", logx.Fields(
+		logx.String(fieldJobID, job.ID),
+		logx.String(fieldJobName, job.Name),
+	))
+}
+
+// logShutdown 记录关闭完成日志（含仍执行中的任务数）。
+func (d *Dispatcher) logShutdown() {
+	if d.cfg.logger == nil {
+		return
+	}
+	remaining := 0
+	d.executing.Range(func(_, _ any) bool {
+		remaining++
+		return true
+	})
+	d.cfg.logger.Info("jobx：执行器已关闭", logx.Fields(
+		logx.Int("jobx_remaining", remaining),
 	))
 }
 
