@@ -2,6 +2,21 @@
 
 本项目遵循语义化版本（SemVer）。v1.0.0 之前允许破坏性变更。
 
+## [v1.0.0] - 2026-08-09
+
+### 正式版声明
+
+- jobx 进入语义化版本稳定期：v1.x 起承诺不引入破坏性 API 变更，
+  新增能力以向后兼容的方式演进；
+- 功能：Dispatcher（异步/延迟/重试/冲突策略/状态与取消/
+  优雅关闭/可选持久化与重启恢复）+ Scheduler（Every/Cron/OneShot/
+  简易方法）+ 自研 cron 解析器；
+- 质量基线：核心包与 cron 包 100% 语句覆盖、4 个 fuzz 目标、
+  race 全绿、vet/staticcheck 全绿、govulncheck 0 漏洞；
+- 文档与工程：README、docs（设计/API/调研/路线/压测）、ERRORS、
+  CHANGELOG、LICENSE、双示例、godoc Example；
+- v0.1.0 - v1.0.0 共 11 个版本全部发布，CI/Release 全绿。
+
 ## [v0.10.0] - 2026-08-09
 
 ### 调研
