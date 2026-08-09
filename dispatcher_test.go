@@ -121,7 +121,7 @@ func TestSubmitRandFailure(t *testing.T) {
 	randRead = func(b []byte) (int, error) { return 0, errors.New("随机源故障") }
 	defer func() { randRead = orig }()
 	if _, err := d.Submit(context.Background(), "task", nil); err == nil ||
-		!errx.Is(err, CodeJobInvalid) {
+		!errx.Is(err, CodeIDGenerateFailed) {
 		t.Fatalf("随机源故障应报错，实际：%v", err)
 	}
 }

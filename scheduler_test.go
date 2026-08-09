@@ -257,7 +257,7 @@ func TestScheduleIDFailure(t *testing.T) {
 	orig := randRead
 	randRead = func(b []byte) (int, error) { return 0, errors.New("随机源故障") }
 	defer func() { randRead = orig }()
-	if _, err := s.Every(time.Hour, "tick"); err == nil || !errx.Is(err, CodeJobInvalid) {
+	if _, err := s.Every(time.Hour, "tick"); err == nil || !errx.Is(err, CodeIDGenerateFailed) {
 		t.Fatalf("ID 生成失败应报错，实际：%v", err)
 	}
 }
@@ -417,11 +417,11 @@ func TestSchedulerRandFailure(t *testing.T) {
 	orig := randRead
 	randRead = func(b []byte) (int, error) { return 0, errors.New("随机源故障") }
 	defer func() { randRead = orig }()
-	if _, err := s.Cron("* * * * * *", "task"); err == nil || !errx.Is(err, CodeJobInvalid) {
+	if _, err := s.Cron("* * * * * *", "task"); err == nil || !errx.Is(err, CodeIDGenerateFailed) {
 		t.Fatalf("Cron ID 失败应报错，实际：%v", err)
 	}
 	if _, err := s.OneShot(time.Now().Add(time.Hour), "task"); err == nil ||
-		!errx.Is(err, CodeJobInvalid) {
+		!errx.Is(err, CodeIDGenerateFailed) {
 		t.Fatalf("OneShot ID 失败应报错，实际：%v", err)
 	}
 }

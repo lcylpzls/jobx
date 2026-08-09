@@ -195,7 +195,7 @@ func (d *Dispatcher) Restore(ctx context.Context) (int, error) {
 	}
 	jobs, err := d.cfg.store.List(ctx)
 	if err != nil {
-		return 0, errx.Wrap(err, errx.KindUnavailable, CodeStoreInvalid, "任务恢复读取失败")
+		return 0, errx.WrapCode(err, CodeStoreInvalid, "任务恢复读取失败")
 	}
 	restored := 0
 	for _, job := range jobs {
@@ -268,7 +268,7 @@ func (d *Dispatcher) buildEntry(name string, payload []byte, spec jobSpec) (*job
 	}
 	id, err := newJobID()
 	if err != nil {
-		return nil, errx.Wrap(err, errx.KindUnavailable, CodeJobInvalid, "任务 ID 生成失败")
+		return nil, errx.WrapCode(err, CodeIDGenerateFailed, "任务 ID 生成失败")
 	}
 	return &jobEntry{job: Job{
 		ID:         id,
@@ -358,7 +358,7 @@ func (d *Dispatcher) persist(ctx context.Context, job Job) error {
 		return nil
 	}
 	if err := d.cfg.store.Save(ctx, job); err != nil {
-		return errx.Wrap(err, errx.KindUnavailable, CodeStoreInvalid, "任务持久化失败")
+		return errx.WrapCode(err, CodeStoreInvalid, "任务持久化失败")
 	}
 	return nil
 }
@@ -524,7 +524,7 @@ func (d *Dispatcher) runEntry(entry *jobEntry) {
 	h, ok := d.handlers.Load(job.Name)
 	if !ok {
 		d.markStatus(job.ID, StatusFailed)
-		d.metricFailed(job.Name, errx.Wrap(ErrHandlerNotFound, errx.KindNotFound, CodeHandlerNotFound, "处理器缺失"))
+		d.metricFailed(job.Name, errx.WrapCode(ErrHandlerNotFound, CodeHandlerNotFound, "处理器缺失"))
 		d.logError(job, ErrHandlerNotFound)
 		return
 	}
@@ -534,7 +534,7 @@ func (d *Dispatcher) runEntry(entry *jobEntry) {
 	func() {
 		defer func() {
 			if r := recover(); r != nil {
-				err = errx.Wrap(fmt.Errorf("处理器 panic：%v", r), errx.KindInternal,
+				err = errx.WrapCode(fmt.Errorf("处理器 panic：%v", r),
 					CodeExecutionFailed, "处理器执行失败")
 				if d.cfg.logger != nil {
 					d.cfg.logger.Error("jobx：处理器 panic", logx.Fields(
@@ -549,7 +549,7 @@ func (d *Dispatcher) runEntry(entry *jobEntry) {
 	}()
 	if d.isCancelled(job.ID) {
 		d.markStatus(job.ID, StatusCancelled)
-		d.logError(job, errx.New(errx.KindCancelled, CodeJobNotFound, "任务已取消"))
+		d.logError(job, errx.NewCode(CodeJobCancelled, "任务已取消"))
 		return
 	}
 	if err != nil {
@@ -686,12 +686,12 @@ func newJobID() (string, error) {
 
 // errInvalidConfig 构造配置错误。
 func errInvalidConfig(msg string) error {
-	return errx.New(errx.KindInvalid, CodeInvalidConfig, msg)
+	return errx.NewCode(CodeInvalidConfig, msg)
 }
 
 // errJobInvalid 构造任务参数错误。
 func errJobInvalid(msg string) error {
-	return errx.New(errx.KindInvalid, CodeJobInvalid, msg)
+	return errx.NewCode(CodeJobInvalid, msg)
 }
 
 // metricQueued 记录队列入队/出队。

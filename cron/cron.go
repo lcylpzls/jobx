@@ -238,5 +238,5 @@ func dayMatch(domAll, dowAll, domOK, dowOK bool) bool {
 
 // parseError 构造 cron 表达式错误（含字段定位）。
 func parseError(msg string) error {
-	return errx.New(errx.KindInvalid, CodeCronInvalid, msg)
+	return errx.NewCode(CodeCronInvalid, msg)
 }

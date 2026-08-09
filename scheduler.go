@@ -311,7 +311,7 @@ func (s *Scheduler) register(entry *scheduleEntry) error {
 func (s *Scheduler) newEntry(name string) (*scheduleEntry, error) {
 	id, err := newJobID()
 	if err != nil {
-		return nil, errx.Wrap(err, errx.KindUnavailable, CodeJobInvalid, "调度条目 ID 生成失败")
+		return nil, errx.WrapCode(err, CodeIDGenerateFailed, "调度条目 ID 生成失败")
 	}
 	return &scheduleEntry{
 		id:   id,
