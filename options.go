@@ -58,6 +58,7 @@ type config struct {
 	logger      logx.Logger
 	now         func() time.Time
 	metrics     Metrics
+	store       Store
 }
 
 // defaultConfig 返回默认配置。
@@ -142,6 +143,17 @@ func WithLogger(logger logx.Logger) Option {
 func WithMetrics(m Metrics) Option {
 	return func(c *config) error {
 		c.metrics = m
+		return nil
+	}
+}
+
+// WithStore 启用任务持久化（提交/延迟同步写入，终态删除）。
+func WithStore(store Store) Option {
+	return func(c *config) error {
+		if store == nil {
+			return errInvalidConfig("任务存储不能为空")
+		}
+		c.store = store
 		return nil
 	}
 }

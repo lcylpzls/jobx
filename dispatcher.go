@@ -161,7 +161,14 @@ func (d *Dispatcher) SubmitWithOptions(ctx context.Context, name string, payload
 		return "", ErrShuttingDown
 	}
 	if spec.runAt.IsZero() || !spec.runAt.After(d.cfg.now()) {
+		if err := d.persist(ctx, entry.job); err != nil {
+			d.releaseJob(entry.job.Name, entry.job.ID)
+			return "", err
+		}
 		if err := d.enqueueReady(ctx, entry); err != nil {
+			if d.cfg.store != nil {
+				_ = d.cfg.store.Delete(ctx, entry.job.ID)
+			}
 			d.releaseJob(entry.job.Name, entry.job.ID)
 			return "", err
 		}
@@ -170,10 +177,49 @@ func (d *Dispatcher) SubmitWithOptions(ctx context.Context, name string, payload
 		d.logSubmit(entry.job)
 		return entry.job.ID, nil
 	}
+	if err := d.persist(ctx, entry.job); err != nil {
+		d.releaseJob(entry.job.Name, entry.job.ID)
+		return "", err
+	}
 	d.pushDelayed(entry)
 	d.markStatus(entry.job.ID, StatusDelayed)
 	d.logSubmit(entry.job)
 	return entry.job.ID, nil
+}
+
+// Restore 从持久化存储恢复未完成任务（进程重启后调用），返回恢复数量。
+// 恢复绕过冲突检查但重建在途集合；缺失处理器的任务被删除并跳过。
+func (d *Dispatcher) Restore(ctx context.Context) (int, error) {
+	if d.cfg.store == nil {
+		return 0, nil
+	}
+	jobs, err := d.cfg.store.List(ctx)
+	if err != nil {
+		return 0, errx.Wrap(err, errx.KindUnavailable, CodeStoreInvalid, "任务恢复读取失败")
+	}
+	restored := 0
+	for _, job := range jobs {
+		if _, ok := d.handlers.Load(job.Name); !ok {
+			_ = d.cfg.store.Delete(ctx, job.ID)
+			d.logStore("jobx：恢复时跳过缺失处理器的任务", job)
+			continue
+		}
+		entry := &jobEntry{job: job}
+		d.jobNames.Store(job.ID, job.Name)
+		d.addInFlightForRestore(job.Name, job.ID)
+		if job.RunAt.After(d.cfg.now()) {
+			d.pushDelayed(entry)
+			d.markStatus(job.ID, StatusDelayed)
+		} else {
+			if err := d.ready.push(ctx, entry, false); err != nil {
+				return restored, err
+			}
+			d.markStatus(job.ID, StatusQueued)
+			d.metricQueued(job.Name, 1)
+		}
+		restored++
+	}
+	return restored, nil
 }
 
 // JobStatus 查询任务状态；未知 ID 返回 ErrJobNotFound。
@@ -306,6 +352,27 @@ func (d *Dispatcher) releaseJob(name, id string) {
 	d.jobNames.Delete(id)
 }
 
+// persist 同步持久化任务（未启用存储时直接成功）。
+func (d *Dispatcher) persist(ctx context.Context, job Job) error {
+	if d.cfg.store == nil {
+		return nil
+	}
+	if err := d.cfg.store.Save(ctx, job); err != nil {
+		return errx.Wrap(err, errx.KindUnavailable, CodeStoreInvalid, "任务持久化失败")
+	}
+	return nil
+}
+
+// addInFlightForRestore 恢复时重建在途集合（Allow 策略不维护）。
+func (d *Dispatcher) addInFlightForRestore(name, id string) {
+	if d.cfg.conflict == ConflictAllow {
+		return
+	}
+	d.inFlightMu.Lock()
+	d.addInFlightLocked(name, id)
+	d.inFlightMu.Unlock()
+}
+
 // enqueueReady 将条目送入就绪队列。
 func (d *Dispatcher) enqueueReady(ctx context.Context, entry *jobEntry) error {
 	if err := d.ready.push(ctx, entry, d.cfg.queuePolicy == QueueFullDrop); err != nil {
@@ -406,6 +473,9 @@ func (d *Dispatcher) drainDelayed() {
 		}
 		entry := heap.Pop(&d.delayHeap).(*jobEntry)
 		d.delayMu.Unlock()
+		if d.cfg.store != nil {
+			_ = d.cfg.store.Delete(context.Background(), entry.job.ID)
+		}
 		d.metricDropped(entry.job.Name)
 		d.markStatus(entry.job.ID, StatusCancelled)
 		d.releaseJob(entry.job.Name, entry.job.ID)
@@ -447,6 +517,9 @@ func (d *Dispatcher) runEntry(entry *jobEntry) {
 		cancel()
 		d.metricRunning(job.Name, -1)
 		d.releaseJob(job.Name, job.ID)
+		if d.cfg.store != nil {
+			_ = d.cfg.store.Delete(context.Background(), job.ID)
+		}
 	}()
 	h, ok := d.handlers.Load(job.Name)
 	if !ok {
@@ -501,10 +574,24 @@ func (d *Dispatcher) scheduleRetry(entry *jobEntry, cause error) {
 	next := *entry
 	next.job.Attempt++
 	next.job.RunAt = d.cfg.now().Add(delay)
+	if d.cfg.store != nil {
+		_ = d.cfg.store.Save(context.Background(), next.job)
+	}
 	d.pushDelayed(&next)
 	d.markStatus(next.job.ID, StatusDelayed)
 	d.metricRetried(job.Name, next.job.Attempt)
 	d.logRetry(job, next.job.RunAt, cause)
+}
+
+// logStore 记录存储相关日志。
+func (d *Dispatcher) logStore(msg string, job Job) {
+	if d.cfg.logger == nil {
+		return
+	}
+	d.cfg.logger.Warn(msg, logx.Fields(
+		logx.String(fieldJobID, job.ID),
+		logx.String(fieldJobName, job.Name),
+	))
 }
 
 // waitWorkers 等待 worker 与延迟调度退出，ctx 超时则取消执行中任务。
@@ -547,6 +634,9 @@ func (d *Dispatcher) cancelByIDLocked(id string) {
 	d.cancelled.Store(id, struct{}{})
 	if n, ok := d.jobNames.Load(id); ok {
 		d.releaseJob(n.(string), id)
+	}
+	if d.cfg.store != nil {
+		_ = d.cfg.store.Delete(context.Background(), id)
 	}
 	if v, ok := d.executing.Load(id); ok {
 		if cancel, ok := v.(context.CancelFunc); ok {

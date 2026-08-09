@@ -32,6 +32,8 @@ const (
 	CodeCronInvalid errx.Code = "jobx_cron_invalid"
 	// CodeSchedulerStopped 调度器已停止。
 	CodeSchedulerStopped errx.Code = "jobx_scheduler_stopped"
+	// CodeStoreInvalid 任务存储读写失败。
+	CodeStoreInvalid errx.Code = "jobx_store_invalid"
 )
 
 // 预定义错误值，可用 errx.Is / errors.Is 判断。
@@ -64,4 +66,6 @@ var (
 	ErrCronInvalid = errx.New(errx.KindInvalid, CodeCronInvalid, "cron 表达式非法")
 	// ErrSchedulerStopped 调度器已停止。
 	ErrSchedulerStopped = errx.New(errx.KindUnavailable, CodeSchedulerStopped, "调度器已停止")
+	// ErrStoreInvalid 任务存储读写失败。
+	ErrStoreInvalid = errx.New(errx.KindUnavailable, CodeStoreInvalid, "任务存储读写失败")
 )

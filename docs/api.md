@@ -288,6 +288,7 @@ var (
 	ErrReplaced         = errx.New(errx.KindConflict, CodeReplaced, "同名旧任务已被替换取消")
 	ErrCronInvalid      = errx.New(errx.KindInvalid, CodeCronInvalid, "cron 表达式非法")
 	ErrSchedulerStopped = errx.New(errx.KindUnavailable, CodeSchedulerStopped, "调度器已停止")
+	ErrStoreInvalid     = errx.New(errx.KindUnavailable, CodeStoreInvalid, "任务存储读写失败")
 )
 ```
 

@@ -3,8 +3,8 @@
 自研单进程任务执行与调度库：异步任务、延迟任务、定时任务，
 与 errx / logx 生态打通。
 
-> 当前状态：**v0.4.0 已发布**。日志/指标/基准完备，热路径已审查；
-> 持久化接口按 [docs/roadmap.md](docs/roadmap.md) 迭代中。
+> 当前状态：**v0.5.0 已发布**。可选持久化接口与重启恢复可用；
+> 发布前终审按 [docs/roadmap.md](docs/roadmap.md) 进行中。
 
 ## 定位
 
@@ -64,6 +64,21 @@ _ = scheduler.DailyAt(3, 0, 0, "daily_report")
 
 `logx.Logger` 通过 `jobx.WithLogger` 注入；完整 API 见
 [docs/api.md](docs/api.md)。
+
+## 持久化（可选）
+
+```go
+// 实现 jobx.Store 接口（Save/Delete/List），如基于 dbx：
+store := &myDBStore{}
+
+d, _ := jobx.NewDispatcher(jobx.WithStore(store))
+
+// 进程重启后恢复未完成任务。
+n, err := d.Restore(ctx)
+```
+
+提交与延迟任务先落库再入队，终态/取消同步删除；
+未启用存储时行为与旧版本完全一致。
 
 > 当前快速上手为**目标形态**：`NewDispatcher` / `Handle` / `Submit` /
 > `SubmitAt` / `SubmitAfter` / `JobStatus` / `Cancel` / `Shutdown`

@@ -239,6 +239,7 @@ func (d *Dispatcher) Shutdown(ctx context.Context) error
 | `jobx_replaced` | 同名任务在途，旧任务被替换取消 | conflict | 409 |
 | `jobx_cron_invalid` | cron 表达式非法 | invalid_argument | 400 |
 | `jobx_scheduler_stopped` | 调度器已停止 | unavailable | 503 |
+| `jobx_store_invalid` | 任务存储读写失败 | unavailable | 503 |
 
 预定义错误值（`ErrQueueFull` 等）支持 `errors.Is`；`errx.Is` 支持按码判断。
 
