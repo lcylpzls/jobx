@@ -187,3 +187,40 @@ func TestDayUnion(t *testing.T) {
 		t.Fatalf("并集应命中 8 月 3 日（周一）：%v", got)
 	}
 }
+
+// TestNextMonthEnd 覆盖每月 31 号跳过小月。
+func TestNextMonthEnd(t *testing.T) {
+	e, err := Parse("0 0 31 * *")
+	if err != nil {
+		t.Fatal(err)
+	}
+	base := time.Date(2026, 4, 15, 0, 0, 0, 0, time.UTC)
+	got, err := e.Next(base)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Month() != time.May || got.Day() != 31 {
+		t.Fatalf("应跳过无 31 号的月份：%v", got)
+	}
+}
+
+// TestNextDST 覆盖夏令时切换日的触发计算（不 panic、返回合法时间）。
+func TestNextDST(t *testing.T) {
+	loc, err := time.LoadLocation("America/New_York")
+	if err != nil {
+		t.Fatal(err)
+	}
+	e, err := Parse("0 2 * * *")
+	if err != nil {
+		t.Fatal(err)
+	}
+	// 2026-03-08 02:00 在纽约不存在（跳变到 03:00）。
+	base := time.Date(2026, 3, 8, 0, 0, 0, 0, loc)
+	got, err := e.Next(base)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Location() != loc || got.Hour() < 2 || got.Hour() > 3 {
+		t.Fatalf("DST 切换日结果异常：%v", got)
+	}
+}

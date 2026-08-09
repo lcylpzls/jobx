@@ -69,6 +69,8 @@ jobs:
         run: |
           go test -run '^$' -fuzz '^FuzzSubmit$' -fuzztime=10s .
           go test -run '^$' -fuzz '^FuzzCron$' -fuzztime=10s ./cron/
+          go test -run '^$' -fuzz '^FuzzScheduler$' -fuzztime=10s .
+          go test -run '^$' -fuzz '^FuzzOptions$' -fuzztime=10s .
 
   vulncheck:
     runs-on: ubuntu-latest

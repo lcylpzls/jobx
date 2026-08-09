@@ -106,8 +106,19 @@ func (e *Expr) Next(after time.Time) (time.Time, error) {
 		}
 		// 时。
 		if !e.hour.set[t.Hour()] {
-			if n := nextInSet(e.hour, t.Hour()); n >= 0 {
-				t = time.Date(t.Year(), t.Month(), t.Day(), n, 0, 0, 0, t.Location())
+			advanced := false
+			for h := t.Hour() + 1; h < 24; h++ {
+				if !e.hour.set[h] {
+					continue
+				}
+				candidate := time.Date(t.Year(), t.Month(), t.Day(), h, 0, 0, 0, t.Location())
+				if candidate.Hour() == h { // 跳过 DST gap 中不存在的墙钟小时。
+					t = candidate
+					advanced = true
+					break
+				}
+			}
+			if advanced {
 				continue
 			}
 			t = time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, t.Location()).AddDate(0, 0, 1)
