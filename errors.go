@@ -2,6 +2,24 @@ package jobx
 
 import "github.com/lcylpzls/errx"
 
+func init() {
+	errx.RegisterCode(CodeInvalidConfig, "配置非法")
+	errx.RegisterCode(CodeHandlerNotFound, "未注册处理器")
+	errx.RegisterCode(CodeHandlerConflict, "处理器重复注册")
+	errx.RegisterCode(CodeJobInvalid, "任务参数非法")
+	errx.RegisterCode(CodeJobNotFound, "任务或调度条目不存在")
+	errx.RegisterCode(CodeQueueFull, "就绪队列已满")
+	errx.RegisterCode(CodeShuttingDown, "关闭中拒绝新任务")
+	errx.RegisterCode(CodeTimeout, "单任务执行超时")
+	errx.RegisterCode(CodeRetryExhausted, "重试耗尽")
+	errx.RegisterCode(CodeExecutionFailed, "处理器执行失败")
+	errx.RegisterCode(CodeSkipped, "同名任务在途,本次提交被跳过")
+	errx.RegisterCode(CodeReplaced, "同名旧任务已被替换取消")
+	errx.RegisterCode(CodeCronInvalid, "cron 表达式非法")
+	errx.RegisterCode(CodeSchedulerStopped, "调度器已停止")
+	errx.RegisterCode(CodeStoreInvalid, "任务存储读写失败")
+}
+
 // 错误码统一以 jobx_ 为前缀。
 const (
 	// CodeInvalidConfig 配置非法。
