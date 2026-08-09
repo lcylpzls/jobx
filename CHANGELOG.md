@@ -2,6 +2,30 @@
 
 本项目遵循语义化版本（SemVer）。v1.0.0 之前允许破坏性变更。
 
+## [v0.2.0] - 2026-08-09
+
+### 新增
+
+- 延迟队列（最小堆 + 单 timer）：
+  - `SubmitAt` / `SubmitAfter` / `WithRunAt`；
+  - 到期自动移入就绪队列，关闭时延迟任务丢弃并计数；
+- 失败重试：`WithRetry`（指数退避，`RetryDelay × 2^Attempt`）；
+- 同名任务冲突策略：`WithConflictPolicy`——
+  `ConflictSkip`（默认，返回 `ErrSkipped`）/
+  `ConflictReplace`（尽力取消旧任务并执行新任务）/
+  `ConflictAllow`（允许并发）；
+- 任务状态与取消：`JobStatus`（六态 + 容量上限）、`Cancel`
+  （延迟/排队物理移除，执行中 ctx 协作）；
+- Metrics 全量注入：Queued/Running/Completed/Failed/Retried/
+  Dropped/Skipped/Replaced。
+
+### 架构改进
+
+- 就绪队列由 channel 改为自实现队列：支持按 ID 物理移除被取消的
+  排队任务，修复 ConflictReplace 在队列满时被占位条目阻塞的问题；
+- 修复 Cancel 后未释放在途集合导致同名任务被误拦截的问题；
+- timer 清理提取为幂等函数，行为等价且可测试。
+
 ## [v0.1.0] - 2026-08-09
 
 ### 新增

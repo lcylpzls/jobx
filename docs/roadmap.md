@@ -3,7 +3,7 @@
 > 目标：v0.1.0 起每版完成即全自动 CI + Release，全部通过后进入下一版；
 > 定版级质量贯穿全程（100% 覆盖、race、fuzz、三平台 CI、govulncheck）。
 
-## v0.1.0 — 执行器核心
+## v0.1.0 — 执行器核心（已发布）
 
 - Dispatcher：就绪队列 + worker 池 + 提交（立即）；
 - Handler 注册与路由；任务超时；处理器 panic 恢复；
@@ -12,7 +12,7 @@
 - errx 错误码骨架（按能力分版启用）、logx 结构化日志；
 - 交付：`Submit`、`Handle`、`Shutdown`、选项、错误值。
 
-## v0.2.0 — 延迟与生命周期
+## v0.2.0 — 延迟与生命周期（已发布）
 
 - 延迟队列（最小堆 + 单 timer）：`SubmitAt` / `SubmitAfter`；
 - 失败重试（指数退避 + 重试次数上限）；

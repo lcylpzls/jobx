@@ -216,7 +216,7 @@ func blockHandler(release, started chan struct{}) Handler {
 
 // TestQueueFullBlock 覆盖阻塞策略。
 func TestQueueFullBlock(t *testing.T) {
-	d, err := NewDispatcher(WithWorkers(1), WithQueueSize(1))
+	d, err := NewDispatcher(WithWorkers(1), WithQueueSize(1), WithConflictPolicy(ConflictAllow))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -255,7 +255,8 @@ func TestQueueFullBlock(t *testing.T) {
 
 // TestQueueFullDrop 覆盖丢弃策略。
 func TestQueueFullDrop(t *testing.T) {
-	d, err := NewDispatcher(WithWorkers(1), WithQueueSize(1), WithQueueFullPolicy(QueueFullDrop))
+	d, err := NewDispatcher(WithWorkers(1), WithQueueSize(1), WithQueueFullPolicy(QueueFullDrop),
+		WithConflictPolicy(ConflictAllow))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -279,7 +280,7 @@ func TestQueueFullDrop(t *testing.T) {
 
 // TestSubmitCtxCancel 覆盖阻塞提交随 ctx 取消。
 func TestSubmitCtxCancel(t *testing.T) {
-	d, err := NewDispatcher(WithWorkers(1), WithQueueSize(1))
+	d, err := NewDispatcher(WithWorkers(1), WithQueueSize(1), WithConflictPolicy(ConflictAllow))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -315,7 +316,7 @@ func TestSubmitCtxCancel(t *testing.T) {
 
 // TestShutdownDrain 覆盖关闭时排空存量。
 func TestShutdownDrain(t *testing.T) {
-	d, err := NewDispatcher(WithWorkers(2))
+	d, err := NewDispatcher(WithWorkers(2), WithConflictPolicy(ConflictAllow))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -381,7 +382,7 @@ func TestHandlerMissingDefensive(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer d.Shutdown(context.Background())
-	d.ready <- &jobEntry{job: Job{ID: "x", Name: "missing"}}
+	_ = d.ready.push(context.Background(), &jobEntry{job: Job{ID: "x", Name: "missing"}}, false)
 	// worker 消费后不会 panic；关闭等待其退出。
 }
 

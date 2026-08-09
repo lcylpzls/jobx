@@ -114,7 +114,9 @@ Dispatcher 生命周期：`new → running → shutting_down → stopped`。
 
 ### 6.2 就绪队列
 
-- 实现：`chan *jobEntry`，容量 `WithQueueSize`（默认 1024，必须为正）；
+- 实现：内部环形队列（mutex + 通知 channel），容量 `WithQueueSize`
+  （默认 1024，必须为正）；支持按任务 ID **物理移除**被取消的条目，
+  确保 ConflictReplace 不会因占位条目阻塞新任务；
 - 提交策略 `WithQueueFullPolicy`：
   - `Block`（默认）：队列满时阻塞提交，保证不丢任务；
   - `QueueFullDrop`：队列满时丢弃新任务并返回 `ErrQueueFull`（不阻塞业务）。
@@ -162,7 +164,8 @@ Dispatcher 生命周期：`new → running → shutting_down → stopped`。
 
 - 条件：`err != nil && Attempt < MaxRetries`（`MaxRetries` 表示最多
   重试次数，0 表示不重试；总执行次数 = `MaxRetries + 1`）；
-- 延迟：`RetryDelay × 2^(Attempt-1)`，不引入随机抖动（可复现、可测试）；
+- 延迟：`RetryDelay × 2^Attempt`（Attempt 为已失败次数，首次为 0），
+  不引入随机抖动（可复现、可测试）；
 - 重试任务进入延迟堆，`Attempt` 递增；
 - 重试耗尽 → 最终失败回调 + 结构化错误日志（含 `attempt`）。
 

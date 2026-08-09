@@ -3,8 +3,8 @@
 自研单进程任务执行与调度库：异步任务、延迟任务、定时任务，
 与 errx / logx 生态打通。
 
-> 当前状态：**v0.1.0 已发布**。执行器核心可用，延迟/调度等能力按
-> [docs/roadmap.md](docs/roadmap.md) 持续迭代。
+> 当前状态：**v0.2.0 已发布**。延迟、重试、冲突策略与状态/取消可用；
+> 调度器（cron）按 [docs/roadmap.md](docs/roadmap.md) 迭代中。
 
 ## 定位
 
@@ -66,8 +66,9 @@ _ = scheduler.DailyAt(3, 0, 0, "daily_report")
 [docs/api.md](docs/api.md)。
 
 > 当前快速上手为**目标形态**：Scheduler 与简易调度方法将在
-> v0.3.0 落地，v0.1.0 已可用能力为 `NewDispatcher` / `Handle` /
-> `Submit` / `Shutdown` 及选项与错误值。
+> v0.3.0 落地；v0.2.0 已可用 `NewDispatcher` / `Handle` / `Submit` /
+> `SubmitAt` / `SubmitAfter` / `JobStatus` / `Cancel` / `Shutdown`
+> 及全部选项与错误值。
 
 ## License
 

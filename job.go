@@ -33,7 +33,10 @@ type Handler func(ctx context.Context, job Job) error
 
 // jobSpec 提交时的任务规格。
 type jobSpec struct {
-	timeout time.Duration
+	runAt      time.Time
+	maxRetries int
+	retryDelay time.Duration
+	timeout    time.Duration
 }
 
 // SubmitOption 配置单次提交的任务。
@@ -46,6 +49,32 @@ func WithTimeout(timeout time.Duration) SubmitOption {
 			return errJobInvalid("任务超时必须非负")
 		}
 		s.timeout = timeout
+		return nil
+	}
+}
+
+// WithRunAt 设置计划执行时刻（零值报错；早于当前时刻按立即执行）。
+func WithRunAt(at time.Time) SubmitOption {
+	return func(s *jobSpec) error {
+		if at.IsZero() {
+			return errJobInvalid("执行时刻不能为零值")
+		}
+		s.runAt = at
+		return nil
+	}
+}
+
+// WithRetry 设置失败重试次数上限与首次重试延迟（后续指数 ×2）。
+func WithRetry(maxRetries int, delay time.Duration) SubmitOption {
+	return func(s *jobSpec) error {
+		if maxRetries < 0 || maxRetries > 100 {
+			return errJobInvalid("重试次数必须在 0-100")
+		}
+		if delay < 0 {
+			return errJobInvalid("重试延迟必须非负")
+		}
+		s.maxRetries = maxRetries
+		s.retryDelay = delay
 		return nil
 	}
 }

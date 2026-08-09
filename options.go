@@ -16,14 +16,48 @@ const (
 	QueueFullDrop
 )
 
+// ConflictPolicy 同名任务在途时的处理策略。
+type ConflictPolicy uint8
+
+const (
+	// ConflictSkip 跳过新任务，返回 ErrSkipped（默认）。
+	ConflictSkip ConflictPolicy = iota
+	// ConflictReplace 取消同名旧任务并执行新任务（尽力取消）。
+	ConflictReplace
+	// ConflictAllow 允许同名任务并发执行。
+	ConflictAllow
+)
+
+// Metrics 外部注入的任务指标回调（全部可选，nil 跳过）。
+type Metrics struct {
+	// Queued 就绪队列入队 +1 / 出队 -1。
+	Queued func(name string, delta int)
+	// Running 执行中 +1 / -1。
+	Running func(name string, delta int)
+	// Completed 任务成功完成。
+	Completed func(name string, duration time.Duration)
+	// Failed 任务最终失败。
+	Failed func(name string, err error)
+	// Retried 安排重试（attempt 为即将执行的第 N 次）。
+	Retried func(name string, attempt int)
+	// Dropped 关闭/队列满等策略丢弃。
+	Dropped func(name string)
+	// Skipped ConflictSkip 跳过。
+	Skipped func(name string)
+	// Replaced ConflictReplace 替换旧任务。
+	Replaced func(name string)
+}
+
 // config Dispatcher 配置。
 type config struct {
 	workers     int
 	queueSize   int
 	queuePolicy QueueFullPolicy
+	conflict    ConflictPolicy
 	maxPayload  int
 	logger      logx.Logger
 	now         func() time.Time
+	metrics     Metrics
 }
 
 // defaultConfig 返回默认配置。
@@ -32,6 +66,7 @@ func defaultConfig() config {
 		workers:     4,
 		queueSize:   1024,
 		queuePolicy: QueueFullBlock,
+		conflict:    ConflictSkip,
 		maxPayload:  1 << 20,
 		now:         time.Now,
 	}
@@ -73,6 +108,17 @@ func WithQueueFullPolicy(p QueueFullPolicy) Option {
 	}
 }
 
+// WithConflictPolicy 设置同名任务在途时的处理策略。
+func WithConflictPolicy(p ConflictPolicy) Option {
+	return func(c *config) error {
+		if p != ConflictSkip && p != ConflictReplace && p != ConflictAllow {
+			return errInvalidConfig("非法冲突策略")
+		}
+		c.conflict = p
+		return nil
+	}
+}
+
 // WithMaxPayloadBytes 设置任务载荷长度上限（必须为正）。
 func WithMaxPayloadBytes(n int) Option {
 	return func(c *config) error {
@@ -88,6 +134,14 @@ func WithMaxPayloadBytes(n int) Option {
 func WithLogger(logger logx.Logger) Option {
 	return func(c *config) error {
 		c.logger = logger
+		return nil
+	}
+}
+
+// WithMetrics 注入任务指标回调（全部可选）。
+func WithMetrics(m Metrics) Option {
+	return func(c *config) error {
+		c.metrics = m
 		return nil
 	}
 }
