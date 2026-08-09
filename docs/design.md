@@ -172,7 +172,7 @@ Dispatcher 生命周期：`new → running → shutting_down → stopped`。
 func (d *Dispatcher) Shutdown(ctx context.Context) error
 ```
 
-- 幂等；重复调用返回 nil；
+- 幂等；重复调用返回首次调用的结果；
 - 流程：标记 shutting_down → 拒绝新提交（`ErrShuttingDown`）→
   排空延迟堆 → 关闭就绪队列 → 等待 worker 消费完存量 →
   ctx 超时则取消执行中的任务 context 并强制退出；
@@ -231,6 +231,7 @@ func (d *Dispatcher) Shutdown(ctx context.Context) error
 | `jobx_shutting_down` | 关闭中拒绝新任务 | unavailable | 503 |
 | `jobx_timeout` | 单任务执行超时 | timeout | 504 |
 | `jobx_retry_exhausted` | 重试耗尽 | internal | 500 |
+| `jobx_execution_failed` | 处理器执行失败（含 panic） | internal | 500 |
 | `jobx_skipped` | 同名任务在途，本次提交被跳过 | already_exists | 409 |
 | `jobx_replaced` | 同名任务在途，旧任务被替换取消 | conflict | 409 |
 | `jobx_cron_invalid` | cron 表达式非法 | invalid_argument | 400 |

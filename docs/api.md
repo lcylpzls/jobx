@@ -283,6 +283,7 @@ var (
 	ErrShuttingDown     = errx.New(errx.KindUnavailable, CodeShuttingDown, "执行器关闭中")
 	ErrTimeout          = errx.New(errx.KindTimeout, CodeTimeout, "任务执行超时")
 	ErrRetryExhausted   = errx.New(errx.KindInternal, CodeRetryExhausted, "任务重试耗尽")
+	ErrExecutionFailed  = errx.New(errx.KindInternal, CodeExecutionFailed, "处理器执行失败")
 	ErrSkipped          = errx.New(errx.KindAlreadyExists, CodeSkipped, "同名任务在途，本次提交被跳过")
 	ErrReplaced         = errx.New(errx.KindConflict, CodeReplaced, "同名旧任务已被替换取消")
 	ErrCronInvalid      = errx.New(errx.KindInvalid, CodeCronInvalid, "cron 表达式非法")
