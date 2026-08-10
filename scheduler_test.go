@@ -3,6 +3,7 @@ package jobx
 import (
 	"context"
 	"errors"
+	testx "github.com/lcylpzls/testx"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -16,9 +17,8 @@ func TestNewSchedulerErrors(t *testing.T) {
 		t.Fatalf("空执行器应报错，实际：%v", err)
 	}
 	d, err := NewDispatcher()
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	defer d.Shutdown(context.Background())
 	if _, err := NewScheduler(d, WithLocation(nil)); err == nil || !errx.Is(err, CodeInvalidConfig) {
 		t.Fatalf("空时区应报错，实际：%v", err)
@@ -28,25 +28,22 @@ func TestNewSchedulerErrors(t *testing.T) {
 // TestEvery 覆盖周期调度。
 func TestEvery(t *testing.T) {
 	d, err := NewDispatcher()
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	defer d.Shutdown(context.Background())
 	var count atomic.Int32
 	_ = d.Handle("tick", func(context.Context, Job) error { count.Add(1); return nil })
 	s, err := NewScheduler(d)
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	defer s.Shutdown(context.Background())
 	if _, err := s.Every(100*time.Millisecond, "tick"); err == nil ||
 		!errx.Is(err, CodeJobInvalid) {
 		t.Fatalf("低于 1 秒周期应报错，实际：%v", err)
 	}
 	sch, err := s.Every(time.Second, "tick")
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	if sch.ID == "" || sch.Name != "tick" {
 		t.Fatalf("条目快照不符：%+v", sch)
 	}
@@ -62,16 +59,14 @@ func TestEvery(t *testing.T) {
 // TestCron 覆盖表达式调度。
 func TestCron(t *testing.T) {
 	d, err := NewDispatcher()
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	defer d.Shutdown(context.Background())
 	var count atomic.Int32
 	_ = d.Handle("every-sec", func(context.Context, Job) error { count.Add(1); return nil })
 	s, err := NewScheduler(d)
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	defer s.Shutdown(context.Background())
 	if _, err := s.Cron("bad expr", "every-sec"); err == nil ||
 		!errx.Is(err, CodeCronInvalid) {
@@ -95,20 +90,17 @@ func TestCron(t *testing.T) {
 // TestCronNoSolution 覆盖无解表达式自动停止。
 func TestCronNoSolution(t *testing.T) {
 	d, err := NewDispatcher()
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	defer d.Shutdown(context.Background())
 	_ = d.Handle("never", func(context.Context, Job) error { return nil })
 	s, err := NewScheduler(d, WithSchedulerLogger(testLogger()))
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	defer s.Shutdown(context.Background())
 	sch, err := s.Cron("0 0 30 2 *", "never")
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	deadline := time.Now().Add(2 * time.Second)
 	for {
 		if len(s.List()) == 0 {
@@ -125,16 +117,14 @@ func TestCronNoSolution(t *testing.T) {
 // TestOneShot 覆盖一次性调度与自动失效。
 func TestOneShot(t *testing.T) {
 	d, err := NewDispatcher()
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	defer d.Shutdown(context.Background())
 	got := make(chan struct{}, 1)
 	_ = d.Handle("once", func(context.Context, Job) error { got <- struct{}{}; return nil })
 	s, err := NewScheduler(d)
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	defer s.Shutdown(context.Background())
 	if _, err := s.OneShot(time.Now().Add(-time.Second), "once"); err == nil ||
 		!errx.Is(err, CodeJobInvalid) {
@@ -160,21 +150,18 @@ func TestOneShot(t *testing.T) {
 // TestStop 覆盖条目停止。
 func TestStop(t *testing.T) {
 	d, err := NewDispatcher()
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	defer d.Shutdown(context.Background())
 	var count atomic.Int32
 	_ = d.Handle("tick", func(context.Context, Job) error { count.Add(1); return nil })
 	s, err := NewScheduler(d)
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	defer s.Shutdown(context.Background())
 	sch, err := s.Every(time.Second, "tick")
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	deadline := time.Now().Add(1500 * time.Millisecond)
 	for count.Load() < 1 && time.Now().Before(deadline) {
 		time.Sleep(10 * time.Millisecond)
@@ -193,16 +180,14 @@ func TestStop(t *testing.T) {
 // TestList 覆盖条目快照。
 func TestList(t *testing.T) {
 	d, err := NewDispatcher()
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	defer d.Shutdown(context.Background())
 	_ = d.Handle("a", func(context.Context, Job) error { return nil })
 	_ = d.Handle("b", func(context.Context, Job) error { return nil })
 	s, err := NewScheduler(d)
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	defer s.Shutdown(context.Background())
 	if _, err := s.Every(time.Hour, "a"); err != nil {
 		t.Fatal(err)
@@ -218,15 +203,13 @@ func TestList(t *testing.T) {
 // TestShutdown 覆盖调度器关闭。
 func TestShutdown(t *testing.T) {
 	d, err := NewDispatcher()
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	defer d.Shutdown(context.Background())
 	_ = d.Handle("tick", func(context.Context, Job) error { return nil })
 	s, err := NewScheduler(d)
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	if _, err := s.Every(time.Hour, "tick"); err != nil {
 		t.Fatal(err)
 	}
@@ -244,15 +227,13 @@ func TestShutdown(t *testing.T) {
 // TestScheduleIDFailure 覆盖调度条目 ID 生成失败。
 func TestScheduleIDFailure(t *testing.T) {
 	d, err := NewDispatcher()
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	defer d.Shutdown(context.Background())
 	_ = d.Handle("tick", func(context.Context, Job) error { return nil })
 	s, err := NewScheduler(d)
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	defer s.Shutdown(context.Background())
 	orig := randRead
 	randRead = func(b []byte) (int, error) { return 0, errors.New("随机源故障") }
@@ -265,18 +246,15 @@ func TestScheduleIDFailure(t *testing.T) {
 // TestFireFailure 覆盖调度触发提交失败自动停止。
 func TestFireFailure(t *testing.T) {
 	d, err := NewDispatcher()
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	_ = d.Handle("tick", func(context.Context, Job) error { return nil })
 	s, err := NewScheduler(d, WithSchedulerLogger(testLogger()))
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	sch, err := s.Every(time.Second, "tick")
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	if err := d.Shutdown(context.Background()); err != nil {
 		t.Fatal(err)
 	}
@@ -296,20 +274,17 @@ func TestFireFailure(t *testing.T) {
 // TestSchedulerShutdownTimeout 覆盖调度器关闭超时。
 func TestSchedulerShutdownTimeout(t *testing.T) {
 	d, err := NewDispatcher(WithWorkers(1), WithQueueSize(1), WithConflictPolicy(ConflictAllow))
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	release := make(chan struct{})
 	started := make(chan struct{})
 	_ = d.Handle("block", blockHandler(release, started))
 	s, err := NewScheduler(d)
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	_, err = s.Every(time.Second, "block")
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	// 等待首个任务执行阻塞并让调度触发积压。
 	time.Sleep(3500 * time.Millisecond)
 	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
@@ -323,26 +298,23 @@ func TestSchedulerShutdownTimeout(t *testing.T) {
 // TestSimpleSchedulers 覆盖简易调度方法与参数越界。
 func TestSimpleSchedulers(t *testing.T) {
 	d, err := NewDispatcher()
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	defer d.Shutdown(context.Background())
 	_ = d.Handle("task", func(context.Context, Job) error { return nil })
 	s, err := NewScheduler(d)
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	defer s.Shutdown(context.Background())
-	for name, fn := range map[string]func() (*Schedule, error){
+	for _, fn := range map[string]func() (*Schedule, error){
 		"每分钟": func() (*Schedule, error) { return s.EveryMinuteAt(30, "task") },
 		"每小时": func() (*Schedule, error) { return s.EveryHourAt(15, "task") },
 		"每天":  func() (*Schedule, error) { return s.DailyAt(3, 0, 0, "task") },
 		"每周":  func() (*Schedule, error) { return s.WeeklyAt(1, 3, 0, 0, "task") },
 	} {
 		sch, err := fn()
-		if err != nil {
-			t.Fatalf("%s 应注册成功：%v", name, err)
-		}
+		testx.RequireNoError(t, err)
+
 		sch.Stop()
 	}
 	if _, err := s.EveryMinuteAt(60, "task"); err == nil || !errx.Is(err, CodeCronInvalid) {
@@ -362,14 +334,12 @@ func TestSimpleSchedulers(t *testing.T) {
 // TestSchedulerEdgeCases 覆盖剩余注册与停止分支。
 func TestSchedulerEdgeCases(t *testing.T) {
 	d, err := NewDispatcher()
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	_ = d.Handle("task", func(context.Context, Job) error { return nil })
 	s, err := NewScheduler(d)
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	// 空名与未注册处理器。
 	if _, err := s.Every(time.Hour, ""); err == nil || !errx.Is(err, CodeJobInvalid) {
 		t.Fatalf("空名应报错，实际：%v", err)
@@ -382,9 +352,8 @@ func TestSchedulerEdgeCases(t *testing.T) {
 	}
 	// OneShot 停止分支。
 	one, err := s.OneShot(time.Now().Add(time.Hour), "task")
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	one.Stop()
 	// Cron 注册后调度器关闭 → register 拒绝。
 	if _, err := s.Cron("* * * * * *", "task"); err != nil {
@@ -404,15 +373,13 @@ func TestSchedulerEdgeCases(t *testing.T) {
 // TestSchedulerRandFailure 覆盖各注册入口的 ID 生成失败。
 func TestSchedulerRandFailure(t *testing.T) {
 	d, err := NewDispatcher()
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	defer d.Shutdown(context.Background())
 	_ = d.Handle("task", func(context.Context, Job) error { return nil })
 	s, err := NewScheduler(d)
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	defer s.Shutdown(context.Background())
 	orig := randRead
 	randRead = func(b []byte) (int, error) { return 0, errors.New("随机源故障") }
@@ -429,18 +396,15 @@ func TestSchedulerRandFailure(t *testing.T) {
 // TestCronFireFailure 覆盖 cron 触发提交失败自动停止（无日志器路径）。
 func TestCronFireFailure(t *testing.T) {
 	d, err := NewDispatcher()
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	_ = d.Handle("sec", func(context.Context, Job) error { return nil })
 	s, err := NewScheduler(d)
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	_, err = s.Cron("* * * * * *", "sec")
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	if err := d.Shutdown(context.Background()); err != nil {
 		t.Fatal(err)
 	}
@@ -456,21 +420,17 @@ func TestCronFireFailure(t *testing.T) {
 // TestSchedulerLocation 覆盖时区选项成功路径。
 func TestSchedulerLocation(t *testing.T) {
 	d, err := NewDispatcher()
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	defer d.Shutdown(context.Background())
 	_ = d.Handle("task", func(context.Context, Job) error { return nil })
 	loc, err := time.LoadLocation("Asia/Shanghai")
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	s, err := NewScheduler(d, WithLocation(loc))
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	defer s.Shutdown(context.Background())
-	if s.loc != loc {
-		t.Fatal("时区应生效")
-	}
+	testx.RequireEqual(t, s.loc, loc)
+
 }

@@ -4,6 +4,7 @@ import (
 	"container/heap"
 	"context"
 	"errors"
+	testx "github.com/lcylpzls/testx"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -12,9 +13,8 @@ import (
 // TestDelayHeapOrder 覆盖最小堆排序比较。
 func TestDelayHeapOrder(t *testing.T) {
 	d, err := NewDispatcher(WithWorkers(1))
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	defer d.Shutdown(context.Background())
 	t1 := time.Now().Add(time.Hour)
 	t2 := time.Now().Add(2 * time.Hour)
@@ -31,9 +31,8 @@ func TestDelayHeapOrder(t *testing.T) {
 // TestPushDelayedSignalFull 覆盖信号通道已满时的非阻塞发送。
 func TestPushDelayedSignalFull(t *testing.T) {
 	d, err := NewDispatcher(WithWorkers(1))
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	defer d.Shutdown(context.Background())
 	d.signal <- struct{}{} // 手动填满信号通道。
 	d.pushDelayed(&jobEntry{job: Job{ID: "x", RunAt: time.Now().Add(time.Hour)}})
@@ -42,9 +41,8 @@ func TestPushDelayedSignalFull(t *testing.T) {
 // TestDelayLoopWaitNegative 覆盖过期条目的零等待。
 func TestDelayLoopWaitNegative(t *testing.T) {
 	d, err := NewDispatcher(WithWorkers(1))
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	_ = d.Handle("task", func(context.Context, Job) error { return nil })
 	d.pushDelayed(&jobEntry{job: Job{ID: "past", Name: "task",
 		RunAt: time.Now().Add(-time.Second)}})
@@ -56,9 +54,8 @@ func TestDelayLoopWaitNegative(t *testing.T) {
 // TestPopDueNotDue 覆盖堆顶未到期时直接返回。
 func TestPopDueNotDue(t *testing.T) {
 	d, err := NewDispatcher(WithWorkers(1))
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	defer d.Shutdown(context.Background())
 	d.pushDelayed(&jobEntry{job: Job{ID: "future", RunAt: time.Now().Add(time.Hour)}})
 	d.popDue()
@@ -67,9 +64,8 @@ func TestPopDueNotDue(t *testing.T) {
 // TestPopDueCancelled 覆盖到期条目已被取消的跳过分支。
 func TestPopDueCancelled(t *testing.T) {
 	d, err := NewDispatcher(WithWorkers(1))
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	defer d.Shutdown(context.Background())
 	d.cancelled.Store("cancelled-id", struct{}{})
 	d.pushDelayed(&jobEntry{job: Job{ID: "cancelled-id", Name: "task",
@@ -80,9 +76,8 @@ func TestPopDueCancelled(t *testing.T) {
 // TestCancelledQueuedRace 覆盖排队任务出队时已被取消的跳过分支。
 func TestCancelledQueuedRace(t *testing.T) {
 	d, err := NewDispatcher(WithWorkers(1))
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	_ = d.Handle("task", func(context.Context, Job) error { return nil })
 	d.cancelled.Store("cancelled-id", struct{}{})
 	_ = d.ready.push(context.Background(),
@@ -106,9 +101,8 @@ func TestReadyQueueClose(t *testing.T) {
 	q.close()
 	select {
 	case err := <-blocked:
-		if !errors.Is(err, ErrShuttingDown) {
-			t.Fatalf("关闭应唤醒阻塞入队：%v", err)
-		}
+		testx.RequireErrorIs(t, err, ErrShuttingDown)
+
 	case <-time.After(2 * time.Second):
 		t.Fatal("阻塞入队未被唤醒")
 	}
@@ -129,15 +123,13 @@ func TestReadyQueueClose(t *testing.T) {
 // TestCancelReleasesInFlight 覆盖取消后释放在途集合。
 func TestCancelReleasesInFlight(t *testing.T) {
 	d, err := NewDispatcher()
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	defer d.Shutdown(context.Background())
 	_ = d.Handle("task", func(context.Context, Job) error { return nil })
 	id, err := d.SubmitAfter(context.Background(), "task", nil, time.Hour)
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	if err := d.Cancel(id); err != nil {
 		t.Fatal(err)
 	}
@@ -162,9 +154,8 @@ func TestMetricsAll(t *testing.T) {
 	// 执行/重试/失败/丢弃。
 	d, err := NewDispatcher(WithWorkers(2), WithQueueSize(4),
 		WithConflictPolicy(ConflictReplace), WithMetrics(m))
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	_ = d.Handle("ok", func(context.Context, Job) error { return nil })
 	var calls atomic.Int32
 	_ = d.Handle("fail", func(_ context.Context, job Job) error {
@@ -178,9 +169,8 @@ func TestMetricsAll(t *testing.T) {
 		t.Fatal(err)
 	}
 	failID, err := d.Submit(context.Background(), "fail", nil, WithRetry(1, time.Millisecond))
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	deadline := time.Now().Add(3 * time.Second)
 	for {
 		s, _ := d.JobStatus(failID)
@@ -205,9 +195,8 @@ func TestMetricsAll(t *testing.T) {
 	}
 	// 跳过与替换。
 	d2, err := NewDispatcher(WithWorkers(1), WithMetrics(m))
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	release := make(chan struct{})
 	started := make(chan struct{})
 	_ = d2.Handle("dup", blockHandler(release, started))
@@ -222,9 +211,8 @@ func TestMetricsAll(t *testing.T) {
 	close(release)
 	d2.Shutdown(context.Background())
 	d3, err := NewDispatcher(WithWorkers(1), WithConflictPolicy(ConflictReplace), WithMetrics(m))
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	_ = d3.Handle("r", func(context.Context, Job) error { return nil })
 	defer d3.Shutdown(context.Background())
 	if _, err := d3.SubmitAfter(context.Background(), "r", nil, time.Hour); err != nil {
@@ -242,9 +230,8 @@ func TestMetricsAll(t *testing.T) {
 // TestRetryBoundary 覆盖零重试边界（失败一次即终态失败）。
 func TestRetryBoundary(t *testing.T) {
 	d, err := NewDispatcher()
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	defer d.Shutdown(context.Background())
 	var calls atomic.Int32
 	_ = d.Handle("task", func(context.Context, Job) error {
@@ -252,9 +239,8 @@ func TestRetryBoundary(t *testing.T) {
 		return errors.New("失败")
 	})
 	id, err := d.Submit(context.Background(), "task", nil, WithRetry(0, time.Second))
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	deadline := time.Now().Add(2 * time.Second)
 	for {
 		s, _ := d.JobStatus(id)
@@ -275,9 +261,8 @@ func TestRetryBoundary(t *testing.T) {
 func TestShutdownSubmitRace(t *testing.T) {
 	for i := 0; i < 50; i++ {
 		d, err := NewDispatcher(WithWorkers(2), WithQueueSize(8))
-		if err != nil {
-			t.Fatal(err)
-		}
+		testx.RequireNoError(t, err)
+
 		_ = d.Handle("task", func(context.Context, Job) error { return nil })
 		ctx := context.Background()
 		go func() {
@@ -293,9 +278,8 @@ func TestShutdownSubmitRace(t *testing.T) {
 func TestDelayLoopTimerCleanup(t *testing.T) {
 	for i := 0; i < 40; i++ {
 		d, err := NewDispatcher(WithWorkers(1))
-		if err != nil {
-			t.Fatal(err)
-		}
+		testx.RequireNoError(t, err)
+
 		_ = d.Handle("task", func(context.Context, Job) error { return nil })
 		d.pushDelayed(&jobEntry{job: Job{ID: "near", Name: "task",
 			RunAt: time.Now().Add(time.Millisecond)}})

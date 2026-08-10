@@ -2,6 +2,7 @@ package jobx
 
 import (
 	"context"
+	testx "github.com/lcylpzls/testx"
 	"sync"
 	"testing"
 	"time"
@@ -11,9 +12,8 @@ import (
 func TestConcurrentSubmitCancel(t *testing.T) {
 	d, err := NewDispatcher(WithWorkers(4), WithQueueSize(64),
 		WithConflictPolicy(ConflictAllow))
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	defer d.Shutdown(context.Background())
 	_ = d.Handle("task", func(ctx context.Context, _ Job) error {
 		select {

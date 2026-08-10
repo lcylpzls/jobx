@@ -3,6 +3,7 @@ package jobx
 import (
 	"context"
 	"errors"
+	testx "github.com/lcylpzls/testx"
 	"sync"
 	"testing"
 	"time"
@@ -80,9 +81,8 @@ func TestStoreOptionInvalid(t *testing.T) {
 func TestStoreLifecycle(t *testing.T) {
 	store := newStubStore()
 	d, err := NewDispatcher(WithStore(store), WithConflictPolicy(ConflictAllow))
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	defer d.Shutdown(context.Background())
 	done := make(chan struct{}, 2)
 	_ = d.Handle("task", func(_ context.Context, job Job) error {
@@ -92,9 +92,8 @@ func TestStoreLifecycle(t *testing.T) {
 	ctx := context.Background()
 	// 立即任务：保存 → 执行 → 删除。
 	id, err := d.Submit(ctx, "task", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	<-done
 	deadline := time.Now().Add(2 * time.Second)
 	for store.count() > 0 && time.Now().Before(deadline) {
@@ -105,17 +104,15 @@ func TestStoreLifecycle(t *testing.T) {
 	}
 	// 延迟任务：保存 → 关闭丢弃 → 删除。
 	_, err = d.SubmitAfter(ctx, "task", nil, time.Hour)
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	if store.count() != 1 {
 		t.Fatalf("延迟任务应已保存：%d", store.count())
 	}
 	// 取消 → 删除。
 	cancelID, err := d.SubmitAfter(ctx, "task", nil, time.Hour)
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	if err := d.Cancel(cancelID); err != nil {
 		t.Fatal(err)
 	}
@@ -134,9 +131,8 @@ func TestStoreSaveFailure(t *testing.T) {
 	store := newStubStore()
 	store.saveErr = errors.New("存储故障")
 	d, err := NewDispatcher(WithStore(store))
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	defer d.Shutdown(context.Background())
 	executed := make(chan struct{}, 1)
 	_ = d.Handle("task", func(context.Context, Job) error {
@@ -179,9 +175,8 @@ func TestRestore(t *testing.T) {
 	store.items["orphan"] = Job{ID: "orphan", Name: "missing",
 		CreatedAt: now, RunAt: now.Add(-time.Minute)}
 	d, err := NewDispatcher(WithStore(store))
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	defer d.Shutdown(context.Background())
 	executed := make(chan struct{}, 1)
 	_ = d.Handle("task", func(context.Context, Job) error {
@@ -189,9 +184,8 @@ func TestRestore(t *testing.T) {
 		return nil
 	})
 	n, err := d.Restore(context.Background())
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	if n != 2 {
 		t.Fatalf("应恢复 2 个任务：%d", n)
 	}
@@ -211,9 +205,8 @@ func TestRestore(t *testing.T) {
 // TestRestoreNoStore 覆盖未启用存储时的恢复。
 func TestRestoreNoStore(t *testing.T) {
 	d, err := NewDispatcher()
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	defer d.Shutdown(context.Background())
 	n, err := d.Restore(context.Background())
 	if err != nil || n != 0 {
@@ -226,9 +219,8 @@ func TestStoreErrors(t *testing.T) {
 	store := newStubStore()
 	store.listErr = errors.New("列表故障")
 	d, err := NewDispatcher(WithStore(store))
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	defer d.Shutdown(context.Background())
 	if _, err := d.Restore(context.Background()); err == nil || !errx.Is(err, CodeStoreInvalid) {
 		t.Fatalf("列表失败应报错，实际：%v", err)
@@ -255,9 +247,8 @@ func TestStoreErrors(t *testing.T) {
 func TestRestoreRetryPersist(t *testing.T) {
 	store := newStubStore()
 	d, err := NewDispatcher(WithStore(store))
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	defer d.Shutdown(context.Background())
 	var calls int
 	_ = d.Handle("flaky", func(_ context.Context, job Job) error {
@@ -268,9 +259,8 @@ func TestRestoreRetryPersist(t *testing.T) {
 		return nil
 	})
 	id, err := d.Submit(context.Background(), "flaky", nil, WithRetry(1, 5*time.Millisecond))
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	deadline := time.Now().Add(3 * time.Second)
 	for {
 		s, _ := d.JobStatus(id)
@@ -293,9 +283,8 @@ func TestStoreQueueFullDrop(t *testing.T) {
 	d, err := NewDispatcher(WithWorkers(1), WithQueueSize(1),
 		WithQueueFullPolicy(QueueFullDrop), WithConflictPolicy(ConflictAllow),
 		WithStore(store), WithLogger(testLogger()))
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	defer d.Shutdown(context.Background())
 	release := make(chan struct{})
 	started := make(chan struct{})
@@ -325,9 +314,8 @@ func TestRestoreCancelledCtx(t *testing.T) {
 		CreatedAt: now, RunAt: now.Add(-time.Minute)}
 	d, err := NewDispatcher(WithWorkers(1), WithQueueSize(1),
 		WithStore(store), WithConflictPolicy(ConflictAllow))
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	defer d.Shutdown(context.Background())
 	release := make(chan struct{})
 	started := make(chan struct{})
@@ -356,9 +344,8 @@ func TestRestoreAllow(t *testing.T) {
 		CreatedAt: now, RunAt: now.Add(-time.Minute)}
 	d, err := NewDispatcher(WithStore(store), WithConflictPolicy(ConflictAllow),
 		WithLogger(testLogger()))
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	defer d.Shutdown(context.Background())
 	done := make(chan struct{}, 1)
 	_ = d.Handle("task", func(context.Context, Job) error {
@@ -369,9 +356,8 @@ func TestRestoreAllow(t *testing.T) {
 	store.items["orphan"] = Job{ID: "orphan", Name: "missing",
 		CreatedAt: now, RunAt: now.Add(-time.Minute)}
 	n, err := d.Restore(context.Background())
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	if n != 1 {
 		t.Fatalf("应恢复 1 个任务：%d", n)
 	}

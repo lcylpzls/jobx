@@ -3,6 +3,7 @@ package jobx
 import (
 	"context"
 	"errors"
+	testx "github.com/lcylpzls/testx"
 	"io"
 	"strings"
 	"sync/atomic"
@@ -25,9 +26,8 @@ func testLogger() logx.Logger {
 // TestHandle 覆盖处理器注册分支。
 func TestHandle(t *testing.T) {
 	d, err := NewDispatcher()
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	defer d.Shutdown(context.Background())
 	if err := d.Handle("", func(context.Context, Job) error { return nil }); err == nil ||
 		!errx.Is(err, CodeJobInvalid) {
@@ -52,9 +52,8 @@ func TestHandle(t *testing.T) {
 // TestSubmitErrors 覆盖提交参数校验分支。
 func TestSubmitErrors(t *testing.T) {
 	d, err := NewDispatcher(WithMaxPayloadBytes(8))
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	defer d.Shutdown(context.Background())
 	_ = d.Handle("task", func(context.Context, Job) error { return nil })
 	if _, err := d.Submit(context.Background(), "task", []byte("123456789")); err == nil ||
@@ -67,9 +66,8 @@ func TestSubmitErrors(t *testing.T) {
 	d2, err := NewDispatcher(WithClock(func() time.Time {
 		return time.Date(2026, 8, 9, 10, 0, 0, 0, time.UTC)
 	}))
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	defer d2.Shutdown(context.Background())
 	fixed := time.Date(2026, 8, 9, 10, 0, 0, 0, time.UTC)
 	created := make(chan time.Time, 1)
@@ -112,9 +110,8 @@ func TestSubmitErrors(t *testing.T) {
 // TestSubmitRandFailure 覆盖随机源故障分支。
 func TestSubmitRandFailure(t *testing.T) {
 	d, err := NewDispatcher()
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	defer d.Shutdown(context.Background())
 	_ = d.Handle("task", func(context.Context, Job) error { return nil })
 	orig := randRead
@@ -129,9 +126,8 @@ func TestSubmitRandFailure(t *testing.T) {
 // TestSubmitSuccess 覆盖提交与执行主流程。
 func TestSubmitSuccess(t *testing.T) {
 	d, err := NewDispatcher(WithWorkers(2))
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	defer d.Shutdown(context.Background())
 	got := make(chan Job, 1)
 	_ = d.Handle("task", func(_ context.Context, job Job) error {
@@ -140,9 +136,8 @@ func TestSubmitSuccess(t *testing.T) {
 	})
 	payload := []byte("original")
 	id, err := d.Submit(context.Background(), "task", payload)
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	if len(id) != 32 {
 		t.Fatalf("任务 ID 应为 32 位十六进制：%q", id)
 	}
@@ -160,9 +155,8 @@ func TestSubmitSuccess(t *testing.T) {
 // TestWorkerPanicRecover 覆盖处理器 panic 恢复后 worker 仍可用。
 func TestWorkerPanicRecover(t *testing.T) {
 	d, err := NewDispatcher(WithWorkers(1), WithLogger(testLogger()))
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	defer d.Shutdown(context.Background())
 	_ = d.Handle("panic", func(context.Context, Job) error { panic("业务故障") })
 	_ = d.Handle("ok", func(context.Context, Job) error { return nil })
@@ -182,9 +176,8 @@ func TestWorkerPanicRecover(t *testing.T) {
 // TestTimeout 覆盖单任务超时。
 func TestTimeout(t *testing.T) {
 	d, err := NewDispatcher()
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	defer d.Shutdown(context.Background())
 	got := make(chan error, 1)
 	_ = d.Handle("slow", func(ctx context.Context, job Job) error {
@@ -197,9 +190,8 @@ func TestTimeout(t *testing.T) {
 	}
 	select {
 	case err := <-got:
-		if !errors.Is(err, context.DeadlineExceeded) {
-			t.Fatalf("应超时：%v", err)
-		}
+		testx.RequireErrorIs(t, err, context.DeadlineExceeded)
+
 	case <-time.After(2 * time.Second):
 		t.Fatal("任务未超时")
 	}
@@ -217,9 +209,8 @@ func blockHandler(release, started chan struct{}) Handler {
 // TestQueueFullBlock 覆盖阻塞策略。
 func TestQueueFullBlock(t *testing.T) {
 	d, err := NewDispatcher(WithWorkers(1), WithQueueSize(1), WithConflictPolicy(ConflictAllow))
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	defer d.Shutdown(context.Background())
 	release := make(chan struct{})
 	started := make(chan struct{})
@@ -245,9 +236,8 @@ func TestQueueFullBlock(t *testing.T) {
 	close(release)
 	select {
 	case err := <-blocked:
-		if err != nil {
-			t.Fatalf("放行后提交应成功：%v", err)
-		}
+		testx.RequireNoError(t, err)
+
 	case <-time.After(2 * time.Second):
 		t.Fatal("阻塞未解除")
 	}
@@ -257,9 +247,8 @@ func TestQueueFullBlock(t *testing.T) {
 func TestQueueFullDrop(t *testing.T) {
 	d, err := NewDispatcher(WithWorkers(1), WithQueueSize(1), WithQueueFullPolicy(QueueFullDrop),
 		WithConflictPolicy(ConflictAllow))
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	defer d.Shutdown(context.Background())
 	release := make(chan struct{})
 	started := make(chan struct{})
@@ -281,9 +270,8 @@ func TestQueueFullDrop(t *testing.T) {
 // TestSubmitCtxCancel 覆盖阻塞提交随 ctx 取消。
 func TestSubmitCtxCancel(t *testing.T) {
 	d, err := NewDispatcher(WithWorkers(1), WithQueueSize(1), WithConflictPolicy(ConflictAllow))
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	defer d.Shutdown(context.Background())
 	release := make(chan struct{})
 	started := make(chan struct{})
@@ -305,9 +293,8 @@ func TestSubmitCtxCancel(t *testing.T) {
 	cancel()
 	select {
 	case err := <-done:
-		if !errors.Is(err, context.Canceled) {
-			t.Fatalf("应返回 ctx 取消错误，实际：%v", err)
-		}
+		testx.RequireErrorIs(t, err, context.Canceled)
+
 	case <-time.After(2 * time.Second):
 		t.Fatal("ctx 取消未生效")
 	}
@@ -317,9 +304,8 @@ func TestSubmitCtxCancel(t *testing.T) {
 // TestShutdownDrain 覆盖关闭时排空存量。
 func TestShutdownDrain(t *testing.T) {
 	d, err := NewDispatcher(WithWorkers(2), WithConflictPolicy(ConflictAllow))
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	var count atomic.Int32
 	_ = d.Handle("task", func(context.Context, Job) error { count.Add(1); return nil })
 	for i := 0; i < 10; i++ {
@@ -341,9 +327,8 @@ func TestShutdownDrain(t *testing.T) {
 // TestShutdownRejects 覆盖关闭后拒绝新提交。
 func TestShutdownRejects(t *testing.T) {
 	d, err := NewDispatcher()
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	_ = d.Handle("task", func(context.Context, Job) error { return nil })
 	if err := d.Shutdown(context.Background()); err != nil {
 		t.Fatal(err)
@@ -356,9 +341,8 @@ func TestShutdownRejects(t *testing.T) {
 // TestShutdownTimeout 覆盖关闭超时取消执行中任务。
 func TestShutdownTimeout(t *testing.T) {
 	d, err := NewDispatcher(WithWorkers(1), WithLogger(testLogger()))
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	release := make(chan struct{})
 	started := make(chan struct{})
 	_ = d.Handle("block", blockHandler(release, started))
@@ -378,9 +362,8 @@ func TestShutdownTimeout(t *testing.T) {
 // TestHandlerMissingDefensive 白盒覆盖执行时处理器缺失的防御分支。
 func TestHandlerMissingDefensive(t *testing.T) {
 	d, err := NewDispatcher(WithWorkers(1), WithLogger(testLogger()))
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	defer d.Shutdown(context.Background())
 	_ = d.ready.push(context.Background(), &jobEntry{job: Job{ID: "x", Name: "missing"}}, false)
 	// worker 消费后不会 panic；关闭等待其退出。
@@ -389,9 +372,8 @@ func TestHandlerMissingDefensive(t *testing.T) {
 // TestPayloadCopy 覆盖载荷深拷贝。
 func TestPayloadCopy(t *testing.T) {
 	d, err := NewDispatcher()
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	defer d.Shutdown(context.Background())
 	got := make(chan []byte, 1)
 	_ = d.Handle("task", func(_ context.Context, job Job) error {
@@ -416,9 +398,8 @@ func TestPayloadCopy(t *testing.T) {
 // TestLoggerEvents 覆盖日志输出路径（丢弃目标，验证不 panic）。
 func TestLoggerEvents(t *testing.T) {
 	d, err := NewDispatcher(WithLogger(testLogger()))
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	defer d.Shutdown(context.Background())
 	_ = d.Handle("ok", func(context.Context, Job) error { return nil })
 	_ = d.Handle("fail", func(context.Context, Job) error { return errors.New("业务失败") })

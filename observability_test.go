@@ -3,6 +3,7 @@ package jobx
 import (
 	"context"
 	"errors"
+	testx "github.com/lcylpzls/testx"
 	"testing"
 	"time"
 )
@@ -11,9 +12,8 @@ import (
 func TestObservabilityLogs(t *testing.T) {
 	// 跳过。
 	d, err := NewDispatcher(WithWorkers(1), WithLogger(testLogger()))
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	release := make(chan struct{})
 	started := make(chan struct{})
 	_ = d.Handle("dup", blockHandler(release, started))
@@ -30,9 +30,8 @@ func TestObservabilityLogs(t *testing.T) {
 	// 替换 + 关闭。
 	d2, err := NewDispatcher(WithWorkers(1), WithLogger(testLogger()),
 		WithConflictPolicy(ConflictReplace))
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	_ = d2.Handle("r", func(context.Context, Job) error { return nil })
 	if _, err := d2.SubmitAfter(context.Background(), "r", nil, time.Hour); err != nil {
 		t.Fatal(err)

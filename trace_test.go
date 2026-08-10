@@ -3,6 +3,7 @@ package jobx
 import (
 	"context"
 	"errors"
+	testx "github.com/lcylpzls/testx"
 	"sync"
 	"testing"
 	"time"
@@ -68,9 +69,8 @@ func waitEnded(t *testing.T, h *fakeTraceHook, n int) {
 func TestTraceHook(t *testing.T) {
 	hook := &fakeTraceHook{}
 	d, err := NewDispatcher(WithWorkers(1), WithTraceHook(hook))
-	if err != nil {
-		t.Fatal(err)
-	}
+	testx.RequireNoError(t, err)
+
 	defer d.Shutdown(context.Background())
 
 	got := make(chan Job, 1)

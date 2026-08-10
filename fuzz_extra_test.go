@@ -2,6 +2,7 @@ package jobx
 
 import (
 	"context"
+	testx "github.com/lcylpzls/testx"
 	"testing"
 	"time"
 )
@@ -15,15 +16,13 @@ func FuzzScheduler(f *testing.F) {
 			t.Skip("输入过大")
 		}
 		d, err := NewDispatcher(WithWorkers(1), WithQueueSize(4))
-		if err != nil {
-			t.Fatal(err)
-		}
+		testx.RequireNoError(t, err)
+
 		defer d.Shutdown(context.Background())
 		_ = d.Handle("task", func(context.Context, Job) error { return nil })
 		s, err := NewScheduler(d)
-		if err != nil {
-			t.Fatal(err)
-		}
+		testx.RequireNoError(t, err)
+
 		defer s.Shutdown(context.Background())
 		_, _ = s.Cron(expr, "task")
 		if intervalSec >= 1 && intervalSec <= 86400 {

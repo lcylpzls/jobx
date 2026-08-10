@@ -2,6 +2,7 @@ package jobx
 
 import (
 	"context"
+	testx "github.com/lcylpzls/testx"
 	"strings"
 	"testing"
 )
@@ -16,9 +17,8 @@ func FuzzSubmit(f *testing.F) {
 			t.Skip("输入过大")
 		}
 		d, err := NewDispatcher(WithWorkers(1), WithQueueSize(8))
-		if err != nil {
-			t.Fatal(err)
-		}
+		testx.RequireNoError(t, err)
+
 		defer d.Shutdown(context.Background())
 		_ = d.Handle("task", func(context.Context, Job) error { return nil })
 		_, _ = d.Submit(context.Background(), name, payload)

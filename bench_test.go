@@ -3,6 +3,7 @@ package jobx
 import (
 	"context"
 	"errors"
+	testx "github.com/lcylpzls/testx"
 	"testing"
 	"time"
 )
@@ -11,9 +12,8 @@ import (
 func BenchmarkSubmit(b *testing.B) {
 	d, err := NewDispatcher(WithWorkers(4), WithQueueSize(1<<16),
 		WithQueueFullPolicy(QueueFullDrop), WithConflictPolicy(ConflictAllow))
-	if err != nil {
-		b.Fatal(err)
-	}
+	testx.RequireNoError(b, err)
+
 	defer d.Shutdown(context.Background())
 	_ = d.Handle("task", func(context.Context, Job) error { return nil })
 	ctx := context.Background()
@@ -27,9 +27,8 @@ func BenchmarkSubmit(b *testing.B) {
 // BenchmarkSubmitDelayed 测量延迟任务提交吞吐。
 func BenchmarkSubmitDelayed(b *testing.B) {
 	d, err := NewDispatcher(WithWorkers(4), WithConflictPolicy(ConflictAllow))
-	if err != nil {
-		b.Fatal(err)
-	}
+	testx.RequireNoError(b, err)
+
 	defer d.Shutdown(context.Background())
 	_ = d.Handle("task", func(context.Context, Job) error { return nil })
 	ctx := context.Background()
@@ -43,9 +42,8 @@ func BenchmarkSubmitDelayed(b *testing.B) {
 // BenchmarkSubmitConflict 测量默认冲突策略下同名提交路径。
 func BenchmarkSubmitConflict(b *testing.B) {
 	d, err := NewDispatcher(WithWorkers(4), WithQueueFullPolicy(QueueFullDrop))
-	if err != nil {
-		b.Fatal(err)
-	}
+	testx.RequireNoError(b, err)
+
 	defer d.Shutdown(context.Background())
 	_ = d.Handle("task", func(context.Context, Job) error { return nil })
 	ctx := context.Background()
@@ -60,9 +58,8 @@ func BenchmarkSubmitConflict(b *testing.B) {
 // BenchmarkDelayPrecision 测量 10ms 延迟任务的调度精度。
 func BenchmarkDelayPrecision(b *testing.B) {
 	d, err := NewDispatcher(WithWorkers(1))
-	if err != nil {
-		b.Fatal(err)
-	}
+	testx.RequireNoError(b, err)
+
 	defer d.Shutdown(context.Background())
 	done := make(chan time.Time, 1)
 	_ = d.Handle("task", func(_ context.Context, _ Job) error {
@@ -86,9 +83,8 @@ func BenchmarkDelayPrecision(b *testing.B) {
 func BenchmarkRetrySubmit(b *testing.B) {
 	d, err := NewDispatcher(WithWorkers(4), WithQueueFullPolicy(QueueFullDrop),
 		WithConflictPolicy(ConflictAllow))
-	if err != nil {
-		b.Fatal(err)
-	}
+	testx.RequireNoError(b, err)
+
 	defer d.Shutdown(context.Background())
 	_ = d.Handle("task", func(context.Context, Job) error { return errors.New("失败") })
 	ctx := context.Background()
