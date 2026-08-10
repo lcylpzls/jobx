@@ -2,6 +2,21 @@
 
 本项目遵循语义化版本（SemVer）。v1.0.0 之前允许破坏性变更。
 
+## [v1.4.0] - 2026-08-10
+
+### 变更
+
+- 任务 ID 统一迁移至家族 `idgenx`：`newJobID` 改用
+  `idgenx.RandomHex(16)`（32 位 hex），去除对 `cryptox.RandomBytes`
+  的直接调用；
+- 保留 `randMu` 并发读写保护，测试注入随机源的行为不变；
+- 依赖调整：移除 cryptox，新增 idgenx v1.3.0。
+
+### 质量
+
+- 根包与 cron 子包语句覆盖率保持 100%；race / vet / staticcheck /
+  govulncheck 全绿。
+
 ## [v1.3.0] - 2026-08-10
 
 ### 变更

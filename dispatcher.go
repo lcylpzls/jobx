@@ -3,15 +3,14 @@ package jobx
 import (
 	"container/heap"
 	"context"
-	"encoding/hex"
 	"fmt"
 	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
 
-	"github.com/lcylpzls/cryptox"
 	"github.com/lcylpzls/errx"
+	"github.com/lcylpzls/idgenx"
 	"github.com/lcylpzls/logx"
 )
 
@@ -30,7 +29,7 @@ const (
 // 由 randMu 保护，避免并发测试读写竞争。
 var (
 	randMu   sync.RWMutex
-	randRead = cryptox.RandomBytes
+	randRead = idgenx.RandomHex
 )
 
 // Status 任务状态。
@@ -699,11 +698,11 @@ func newJobID() (string, error) {
 	randMu.RLock()
 	read := randRead
 	randMu.RUnlock()
-	b, err := read(idBytes)
+	id, err := read(idBytes)
 	if err != nil {
 		return "", err
 	}
-	return hex.EncodeToString(b), nil
+	return id, nil
 }
 
 // errInvalidConfig 构造配置错误。
