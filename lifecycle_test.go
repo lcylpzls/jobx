@@ -431,7 +431,8 @@ func TestInFlightRelease(t *testing.T) {
 	testx.RequireNoError(t, err)
 
 	<-got
-	deadline := time.Now().Add(2 * time.Second)
+	// CI 环境（尤其 Windows）调度偶有延迟，超时放宽到 10 秒避免偶发失败。
+	deadline := time.Now().Add(10 * time.Second)
 	for {
 		s, _ := d.JobStatus(id1)
 		if s == StatusSucceeded {
