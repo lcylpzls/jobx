@@ -3,7 +3,6 @@ package jobx
 import (
 	"container/heap"
 	"context"
-	"crypto/rand"
 	"encoding/hex"
 	"fmt"
 	"strconv"
@@ -11,6 +10,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/lcylpzls/cryptox"
 	"github.com/lcylpzls/errx"
 	"github.com/lcylpzls/logx"
 )
@@ -30,7 +30,7 @@ const (
 // 由 randMu 保护，避免并发测试读写竞争。
 var (
 	randMu   sync.RWMutex
-	randRead = rand.Read
+	randRead = cryptox.RandomBytes
 )
 
 // Status 任务状态。
@@ -696,11 +696,11 @@ func validateName(name string) error {
 
 // newJobID 生成 32 位十六进制随机任务 ID。
 func newJobID() (string, error) {
-	b := make([]byte, idBytes)
 	randMu.RLock()
 	read := randRead
 	randMu.RUnlock()
-	if _, err := read(b); err != nil {
+	b, err := read(idBytes)
+	if err != nil {
 		return "", err
 	}
 	return hex.EncodeToString(b), nil

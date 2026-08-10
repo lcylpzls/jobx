@@ -2,6 +2,19 @@
 
 本项目遵循语义化版本（SemVer）。v1.0.0 之前允许破坏性变更。
 
+## [v1.3.0] - 2026-08-10
+
+### 变更
+
+- 加密能力统一迁移至 `cryptox`：任务 ID 安全随机数改用
+  `cryptox.RandomBytes`，去除对 `crypto/rand` 的直接引用；
+- 保留 `randMu` 并发读写保护，测试注入随机源的行为不变。
+
+### 质量
+
+- 根包与 cron 子包语句覆盖率保持 100%；race / vet / staticcheck /
+  govulncheck 全绿。
+
 ## [v1.2.0] - 2026-08-10
 
 ### 新增

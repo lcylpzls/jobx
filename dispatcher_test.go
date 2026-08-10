@@ -116,7 +116,7 @@ func TestSubmitRandFailure(t *testing.T) {
 	_ = d.Handle("task", func(context.Context, Job) error { return nil })
 	orig := randRead
 	randMu.Lock()
-	randRead = func(b []byte) (int, error) { return 0, errors.New("随机源故障") }
+	randRead = func(n int) ([]byte, error) { return nil, errors.New("随机源故障") }
 	randMu.Unlock()
 	defer func() {
 		randMu.Lock()

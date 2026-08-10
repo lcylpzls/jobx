@@ -237,7 +237,7 @@ func TestScheduleIDFailure(t *testing.T) {
 	defer s.Shutdown(context.Background())
 	orig := randRead
 	randMu.Lock()
-	randRead = func(b []byte) (int, error) { return 0, errors.New("随机源故障") }
+	randRead = func(n int) ([]byte, error) { return nil, errors.New("随机源故障") }
 	randMu.Unlock()
 	defer func() {
 		randMu.Lock()
@@ -389,7 +389,7 @@ func TestSchedulerRandFailure(t *testing.T) {
 	defer s.Shutdown(context.Background())
 	orig := randRead
 	randMu.Lock()
-	randRead = func(b []byte) (int, error) { return 0, errors.New("随机源故障") }
+	randRead = func(n int) ([]byte, error) { return nil, errors.New("随机源故障") }
 	randMu.Unlock()
 	defer func() {
 		randMu.Lock()
