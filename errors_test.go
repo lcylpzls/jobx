@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/lcylpzls/errx"
+	"github.com/lcylpzls/testx"
 )
 
 // TestErrVarKinds 保证预定义错误值通过 NewCode 构造后分类正确
@@ -29,9 +30,7 @@ func TestErrVarKinds(t *testing.T) {
 		"调度停止":    {ErrSchedulerStopped, errx.KindUnavailable},
 		"存储失败":    {ErrStoreInvalid, errx.KindUnavailable},
 	}
-	for name, tc := range cases {
-		if got := errx.KindOf(tc.err); got != tc.kind {
-			t.Errorf("%s: Kind = %v,want %v", name, got, tc.kind)
-		}
+	for _, tc := range cases {
+		testx.RequireEqual(t, errx.KindOf(tc.err), tc.kind)
 	}
 }

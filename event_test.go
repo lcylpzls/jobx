@@ -3,6 +3,7 @@ package jobx
 import (
 	"context"
 	"errors"
+	"github.com/lcylpzls/testx"
 	"strings"
 	"sync"
 	"testing"
@@ -16,9 +17,7 @@ func TestEventHookAllActions(t *testing.T) {
 		WithQueueSize(4),
 		WithEventHook(hook),
 	)
-	if err != nil {
-		t.Fatalf("NewDispatcher 失败：%v", err)
-	}
+	testx.RequireNoError(t, err)
 	defer d.Shutdown(context.Background())
 
 	// 直接驱动指标辅助函数，覆盖全部事件类型。
@@ -57,9 +56,7 @@ func TestEventHookRealRun(t *testing.T) {
 		WithWorkers(1),
 		WithEventHook(hook),
 	)
-	if err != nil {
-		t.Fatalf("NewDispatcher 失败：%v", err)
-	}
+	testx.RequireNoError(t, err)
 	defer d.Shutdown(context.Background())
 
 	if err := d.Handle("ok", func(ctx context.Context, job Job) error { return nil }); err != nil {
@@ -82,9 +79,7 @@ func TestEventHookRealRun(t *testing.T) {
 
 func TestNoEventHook(t *testing.T) {
 	d, err := NewDispatcher()
-	if err != nil {
-		t.Fatalf("NewDispatcher 失败：%v", err)
-	}
+	testx.RequireNoError(t, err)
 	defer d.Shutdown(context.Background())
 	d.metricCompleted("task", time.Millisecond)
 }

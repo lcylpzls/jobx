@@ -3,7 +3,7 @@ package jobx
 import (
 	"testing"
 
-	"github.com/lcylpzls/errx"
+	"github.com/lcylpzls/testx"
 )
 
 // TestNewDispatcherErrors 覆盖全部配置校验分支。
@@ -19,8 +19,7 @@ func TestNewDispatcherErrors(t *testing.T) {
 		{"空时间源", WithClock(nil)},
 	}
 	for _, tc := range cases {
-		if _, err := NewDispatcher(tc.opt); err == nil || !errx.Is(err, CodeInvalidConfig) {
-			t.Fatalf("%s 应报配置错误，实际：%v", tc.name, err)
-		}
+		_, err := NewDispatcher(tc.opt)
+		testx.RequireErrCode(t, err, CodeInvalidConfig)
 	}
 }
