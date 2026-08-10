@@ -12,6 +12,7 @@ import (
 	"github.com/lcylpzls/errx"
 	"github.com/lcylpzls/idgenx"
 	"github.com/lcylpzls/logx"
+	"github.com/lcylpzls/validx"
 )
 
 const (
@@ -685,12 +686,21 @@ func (d *Dispatcher) markStatus(id string, s Status) {
 	d.statuses[id] = s
 }
 
-// validateName 校验任务名称。
+// init 注册任务名校验规则到 validx 全局规则表，错误码保持 jobx 语义。
+func init() {
+	_ = validx.RegisterRule("jobx_task_name", func(value any, param, path string) error {
+		// 内部调用保证 value 为 string。
+		name := value.(string)
+		if name == "" || len(name) > maxNameLength {
+			return ErrJobInvalid
+		}
+		return nil
+	})
+}
+
+// validateName 校验任务名称（统一走 validx 规则）。
 func validateName(name string) error {
-	if name == "" || len(name) > maxNameLength {
-		return ErrJobInvalid
-	}
-	return nil
+	return validx.ValidateField(name, "jobx_task_name")
 }
 
 // newJobID 生成 32 位十六进制随机任务 ID。

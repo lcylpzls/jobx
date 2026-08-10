@@ -2,6 +2,20 @@
 
 本项目遵循语义化版本（SemVer）。v1.0.0 之前允许破坏性变更。
 
+## [v1.5.0] - 2026-08-10
+
+### 变更
+
+- 任务名校验统一迁移至家族 `validx`：注册 `jobx_task_name`
+  全局规则，调用点走 `validx.ValidateField`；
+- errx 错误码保持 `ErrJobInvalid` 语义，行为不变；
+- cron 表达式解析保留为解析器（不迁 validx）。
+
+### 质量
+
+- 根包与 cron 子包语句覆盖率保持 100%；race / vet / staticcheck /
+  govulncheck 全绿。
+
 ## [v1.4.0] - 2026-08-10
 
 ### 变更
