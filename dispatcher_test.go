@@ -115,8 +115,14 @@ func TestSubmitRandFailure(t *testing.T) {
 	defer d.Shutdown(context.Background())
 	_ = d.Handle("task", func(context.Context, Job) error { return nil })
 	orig := randRead
+	randMu.Lock()
 	randRead = func(b []byte) (int, error) { return 0, errors.New("随机源故障") }
-	defer func() { randRead = orig }()
+	randMu.Unlock()
+	defer func() {
+		randMu.Lock()
+		randRead = orig
+		randMu.Unlock()
+	}()
 	if _, err := d.Submit(context.Background(), "task", nil); err == nil ||
 		!errx.Is(err, CodeIDGenerateFailed) {
 		t.Fatalf("随机源故障应报错，实际：%v", err)

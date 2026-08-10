@@ -236,8 +236,14 @@ func TestScheduleIDFailure(t *testing.T) {
 
 	defer s.Shutdown(context.Background())
 	orig := randRead
+	randMu.Lock()
 	randRead = func(b []byte) (int, error) { return 0, errors.New("随机源故障") }
-	defer func() { randRead = orig }()
+	randMu.Unlock()
+	defer func() {
+		randMu.Lock()
+		randRead = orig
+		randMu.Unlock()
+	}()
 	if _, err := s.Every(time.Hour, "tick"); err == nil || !errx.Is(err, CodeIDGenerateFailed) {
 		t.Fatalf("ID 生成失败应报错，实际：%v", err)
 	}
@@ -382,8 +388,14 @@ func TestSchedulerRandFailure(t *testing.T) {
 
 	defer s.Shutdown(context.Background())
 	orig := randRead
+	randMu.Lock()
 	randRead = func(b []byte) (int, error) { return 0, errors.New("随机源故障") }
-	defer func() { randRead = orig }()
+	randMu.Unlock()
+	defer func() {
+		randMu.Lock()
+		randRead = orig
+		randMu.Unlock()
+	}()
 	if _, err := s.Cron("* * * * * *", "task"); err == nil || !errx.Is(err, CodeIDGenerateFailed) {
 		t.Fatalf("Cron ID 失败应报错，实际：%v", err)
 	}

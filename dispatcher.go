@@ -26,8 +26,12 @@ const (
 	fieldRetryAt   = "jobx_retry_at"
 )
 
-// randRead 可替换的随机源，便于测试注入失败场景。
-var randRead = rand.Read
+// randRead 可替换的随机源，便于测试注入失败场景；
+// 由 randMu 保护，避免并发测试读写竞争。
+var (
+	randMu   sync.RWMutex
+	randRead = rand.Read
+)
 
 // Status 任务状态。
 type Status uint8
@@ -693,7 +697,10 @@ func validateName(name string) error {
 // newJobID 生成 32 位十六进制随机任务 ID。
 func newJobID() (string, error) {
 	b := make([]byte, idBytes)
-	if _, err := randRead(b); err != nil {
+	randMu.RLock()
+	read := randRead
+	randMu.RUnlock()
+	if _, err := read(b); err != nil {
 		return "", err
 	}
 	return hex.EncodeToString(b), nil
@@ -714,6 +721,7 @@ func (d *Dispatcher) metricQueued(name string, delta int) {
 	if d.cfg.metrics.Queued != nil {
 		d.cfg.metrics.Queued(name, delta)
 	}
+	d.emitTaskEvent("queued", name, 0, nil)
 }
 
 // metricRunning 记录执行中增减。
@@ -721,6 +729,7 @@ func (d *Dispatcher) metricRunning(name string, delta int) {
 	if d.cfg.metrics.Running != nil {
 		d.cfg.metrics.Running(name, delta)
 	}
+	d.emitTaskEvent("running", name, 0, nil)
 }
 
 // metricCompleted 记录成功完成。
@@ -728,6 +737,7 @@ func (d *Dispatcher) metricCompleted(name string, dur time.Duration) {
 	if d.cfg.metrics.Completed != nil {
 		d.cfg.metrics.Completed(name, dur)
 	}
+	d.emitTaskEvent("completed", name, 0, nil)
 }
 
 // metricFailed 记录最终失败。
@@ -735,6 +745,7 @@ func (d *Dispatcher) metricFailed(name string, err error) {
 	if d.cfg.metrics.Failed != nil {
 		d.cfg.metrics.Failed(name, err)
 	}
+	d.emitTaskEvent("failed", name, 0, err)
 }
 
 // metricRetried 记录重试安排。
@@ -742,6 +753,7 @@ func (d *Dispatcher) metricRetried(name string, attempt int) {
 	if d.cfg.metrics.Retried != nil {
 		d.cfg.metrics.Retried(name, attempt)
 	}
+	d.emitTaskEvent("retried", name, attempt, nil)
 }
 
 // metricDropped 记录丢弃。
@@ -749,6 +761,7 @@ func (d *Dispatcher) metricDropped(name string) {
 	if d.cfg.metrics.Dropped != nil {
 		d.cfg.metrics.Dropped(name)
 	}
+	d.emitTaskEvent("dropped", name, 0, nil)
 }
 
 // metricSkipped 记录跳过。
@@ -756,6 +769,7 @@ func (d *Dispatcher) metricSkipped(name string) {
 	if d.cfg.metrics.Skipped != nil {
 		d.cfg.metrics.Skipped(name)
 	}
+	d.emitTaskEvent("skipped", name, 0, nil)
 }
 
 // metricReplaced 记录替换。
@@ -763,6 +777,20 @@ func (d *Dispatcher) metricReplaced(name string) {
 	if d.cfg.metrics.Replaced != nil {
 		d.cfg.metrics.Replaced(name)
 	}
+	d.emitTaskEvent("replaced", name, 0, nil)
+}
+
+// emitTaskEvent 发送任务事件（无钩子时 no-op）。
+func (d *Dispatcher) emitTaskEvent(action, name string, attempt int, err error) {
+	if d.cfg.eventHook == nil {
+		return
+	}
+	d.cfg.eventHook.OnTaskEvent(context.Background(), TaskEvent{
+		Action:  action,
+		Name:    name,
+		Attempt: attempt,
+		Err:     err,
+	})
 }
 
 // logSubmit 记录任务提交日志。

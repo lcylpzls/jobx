@@ -60,6 +60,7 @@ type config struct {
 	metrics     Metrics
 	store       Store
 	traceHook   TraceHook
+	eventHook   EventHook
 }
 
 // defaultConfig 返回默认配置。
@@ -174,6 +175,14 @@ func WithClock(now func() time.Time) Option {
 func WithTraceHook(h TraceHook) Option {
 	return func(c *config) error {
 		c.traceHook = h
+		return nil
+	}
+}
+
+// WithEventHook 设置任务事件钩子；不设置时 no-op。
+func WithEventHook(h EventHook) Option {
+	return func(c *config) error {
+		c.eventHook = h
 		return nil
 	}
 }

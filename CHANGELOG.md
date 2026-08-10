@@ -2,6 +2,25 @@
 
 本项目遵循语义化版本（SemVer）。v1.0.0 之前允许破坏性变更。
 
+## [v1.2.0] - 2026-08-10
+
+### 新增
+
+- `EventHook` 任务事件钩子（零依赖可选接口，默认 no-op）：
+  queued / running / completed / failed / retried / dropped /
+  skipped / replaced 生命周期节点触发 `TaskEvent`，由 eventx 等
+  外部适配器接入；
+- `WithEventHook` 选项注入。
+
+### 修复
+
+- `randRead` 随机源注入改为 RWMutex 保护，消除并发测试读写竞争
+  （race 全绿）。
+
+### 质量
+
+- 根包语句覆盖率 100%；race / vet / staticcheck / fuzz / govulncheck 全绿。
+
 ## [v1.1.2] - 2026-08-10
 
 ### 变更
