@@ -2,6 +2,13 @@
 
 本项目遵循语义化版本（SemVer）。v1.0.0 之前允许破坏性变更。
 
+## [v1.5.4] - 2026-08-10
+
+### 变更
+
+- Trace 契约统一为 `tracex.TraceHook`（类型别名，调用点不变）；
+- 依赖升级：tracex v1.0.4、errx v1.5.7、logx v1.3.4、idgenx v1.4.4、cryptox v1.0.4、validx v1.2.5、testx v1.4.5。
+
 ## [v1.5.3] - 2026-08-10
 
 ### 变更
