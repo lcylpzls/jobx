@@ -2,6 +2,23 @@
 
 本项目遵循语义化版本（SemVer）。v1.0.0 之前允许破坏性变更。
 
+
+## [v1.7.0] - 2026-08-11
+
+### 破坏性变更
+
+- `TraceHook` / `TraceAttr` 契约迁移至零依赖子模块
+  `tracex/contract`（v1.0.0），jobx 不再依赖 tracex 主模块。
+
+### 重构
+
+- `dispatcher.go` 拆分为调度/生命周期 + `worker.go`（worker 池、
+  任务执行、重试与等待退出），职责边界更清晰。
+
+### 依赖
+
+- 新增 `tracex/contract v1.0.0`。
+
 ## [v1.6.2] - 2026-08-11
 
 ### 新增
