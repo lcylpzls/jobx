@@ -1,4 +1,4 @@
-package jobx
+package core
 
 import (
 	"context"
