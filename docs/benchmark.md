@@ -25,7 +25,7 @@
 | cron 表达式 | ✅ 自研 5/6 字段 | ✅ 标准 | ✅ | ❌ | ❌ |
 | 优雅关闭 | ✅ 排空+超时 | ⚠️ 简单 | ⚠️ 简单 | ✅ | ✅ |
 | 可选持久化 | ✅ Store 接口 | ❌ | ❌ | ✅ Redis | ✅ PG |
-| 外部依赖 | 0（仅 errx/logx） | 0 | 0 | Redis | PostgreSQL |
+| 外部依赖 | 0（仅 errx） | 0 | 0 | Redis | PostgreSQL |
 | 重启恢复 | ✅ Restore | ❌ | ❌ | ✅ | ✅ |
 
 定位差异：robfig 只解决“调度”，gocron 是“调度+执行”，asynq/river 是

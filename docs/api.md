@@ -1,6 +1,6 @@
 # jobx API 定版
 
-> 版本：v0.0.0（规划定稿） · 以下签名在实现阶段按本文执行；
+> 版本：v1.6.1 · 以下签名与代码一致。
 > v0.1.0 前允许微调，v0.1.0 起冻结核心公开面。
 
 ## 1. 包结构
@@ -28,7 +28,7 @@ type Job struct {
 }
 ```
 
-约束见 [design.md §5.1](design.md)。`Attempt` 由框架维护，业务只读。
+约束见 §5.1。`Attempt` 由框架维护，业务只读。
 
 ### 2.2 Handler
 
@@ -37,8 +37,7 @@ type Handler func(ctx context.Context, job Job) error
 ```
 
 - 返回 nil 视为成功；
-- 返回错误触发重试（若 `Attempt < MaxRetries`，语义见
-  [design.md §6.6](design.md)）；
+- 返回错误触发重试（若 `Attempt < MaxRetries`，语义见 §6.6）；
 - panic 视为失败（框架 recover）。
 
 ## 3. Dispatcher
@@ -99,7 +98,7 @@ const (
 )
 ```
 
-语义细节见 [design.md §6.5](design.md)。
+语义细节见 §6.5。
 
 `Metrics`：
 
@@ -189,7 +188,7 @@ const (
 func (d *Dispatcher) Shutdown(ctx context.Context) error
 ```
 
-语义见 [design.md §6.7](design.md)。幂等。
+语义见 §6.7。幂等。
 
 ## 4. Scheduler
 
@@ -293,7 +292,7 @@ var (
 ```
 
 对应 `CodeXxx` 常量（`jobx_*` 前缀），完整对照见
-[design.md §9](design.md)。
+§9（重试与生命周期）。
 
 > `ErrTimeout`/`ErrRetryExhausted` 为**任务执行结果语义**（供
 > Handler 返回与日志/Metrics 使用），不通过 `Submit` 返回；
