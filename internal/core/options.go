@@ -1,6 +1,7 @@
 package core
 
 import (
+	"reflect"
 	"time"
 
 	"github.com/lcylpzls/logx"
@@ -73,6 +74,19 @@ func defaultConfig() config {
 		maxPayload:  1 << 20,
 		now:         time.Now,
 	}
+}
+
+// normalizeLogger 归一日志器：未类型化 nil 与类型化 nil（接口内装 nil 指针）
+// 统一替换为 no-op logger，保证构造完成后 logger 恒非 nil。
+func normalizeLogger(logger logx.Logger) logx.Logger {
+	if logger == nil {
+		return logx.NewNopLogger()
+	}
+	v := reflect.ValueOf(logger)
+	if v.Kind() == reflect.Ptr && v.IsNil() {
+		return logx.NewNopLogger()
+	}
+	return logger
 }
 
 // Option Dispatcher 配置项。

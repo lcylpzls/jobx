@@ -17,7 +17,7 @@ func (nopStore) List(context.Context) ([]jobx.Job, error) { return nil, nil }
 
 // TestPublicAPI 黑盒冒烟测试：覆盖根包全部转发函数、类型别名与常量。
 func TestPublicAPI(t *testing.T) {
-	if jobx.Version != "v1.6.2" {
+	if jobx.Version != "v1.7.1" {
 		t.Fatalf("Version 不符：%s", jobx.Version)
 	}
 

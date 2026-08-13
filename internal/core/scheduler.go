@@ -87,6 +87,7 @@ func NewScheduler(dispatcher *Dispatcher, opts ...SchedulerOption) (*Scheduler, 
 			return nil, err
 		}
 	}
+	cfg.logger = normalizeLogger(cfg.logger)
 	return &Scheduler{
 		dispatcher: dispatcher,
 		loc:        cfg.loc,
@@ -358,9 +359,6 @@ func (e *scheduleEntry) nextTime() time.Time {
 
 // logWarn 记录调度告警。
 func (s *Scheduler) logWarn(msg, name string, err error) {
-	if s.logger == nil {
-		return
-	}
 	s.logger.Warn(msg, logx.Fields(
 		logx.String(fieldJobName, name),
 		logx.String("error", err.Error()),

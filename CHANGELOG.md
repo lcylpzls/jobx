@@ -3,6 +3,31 @@
 本项目遵循语义化版本（SemVer）。v1.0.0 之前允许破坏性变更。
 
 
+## [v1.7.1] - 2026-08-13
+
+### 修复
+
+- 消除“nil logger 直接退出”隐患：`WithLogger` / `WithSchedulerLogger`
+  传入未类型化 nil 或类型化 nil（nil 指针装入接口）时，构造期统一
+  归一为 `logx.NewNopLogger()`，logger 恒非 nil；
+- 删除内部全部日志判空（dispatcher 8 处、worker 2 处、scheduler 1 处），
+  日志调用无条件执行，防御后续新增日志点忘判空；
+- 修正 `internal/core/version.go` 版本常量（v1.6.2 → v1.7.1，
+  与 v1.7.0 tag 不一致的历史遗留）。
+
+### 依赖
+
+- logx 升级至 v1.5.2（新增 `NewNopLogger`）；errx v1.6.1、
+  idgenx v1.5.2、validx v1.3.1、cryptox v1.4.0 同步对齐最新。
+
+### 质量
+
+- 新增类型化 nil / 未类型化 nil / 默认不传三种构造的提交与关闭回归；
+  根包与 internal 覆盖率 100%；race / vet / staticcheck / fuzz /
+  govulncheck 全绿。
+- FuzzOptions 限制 worker/队列规模并即时关闭执行器，避免海量
+  goroutine 泄漏压垮 fuzz 进程（fuzz 目标修正）。
+
 ## [v1.7.0] - 2026-08-11
 
 ### 破坏性变更

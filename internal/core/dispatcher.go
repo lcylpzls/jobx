@@ -90,6 +90,7 @@ func NewDispatcher(opts ...Option) (*Dispatcher, error) {
 			return nil, err
 		}
 	}
+	cfg.logger = normalizeLogger(cfg.logger)
 	d := &Dispatcher{
 		cfg:      cfg,
 		ready:    newReadyQueue(cfg.queueSize),
@@ -655,9 +656,6 @@ func (d *Dispatcher) emitTaskEvent(action, name string, attempt int, err error) 
 
 // logSubmit 记录任务提交日志。
 func (d *Dispatcher) logSubmit(job Job) {
-	if d.cfg.logger == nil {
-		return
-	}
 	d.cfg.logger.Info("jobx：任务已提交", logx.Fields(
 		logx.String(fieldJobID, job.ID),
 		logx.String(fieldJobName, job.Name),
@@ -667,9 +665,6 @@ func (d *Dispatcher) logSubmit(job Job) {
 
 // logStart 记录任务开始日志。
 func (d *Dispatcher) logStart(job Job) {
-	if d.cfg.logger == nil {
-		return
-	}
 	d.cfg.logger.Info("jobx：任务开始执行", logx.Fields(
 		logx.String(fieldJobID, job.ID),
 		logx.String(fieldJobName, job.Name),
@@ -679,9 +674,6 @@ func (d *Dispatcher) logStart(job Job) {
 
 // logCompleted 记录任务完成日志。
 func (d *Dispatcher) logCompleted(job Job, duration time.Duration) {
-	if d.cfg.logger == nil {
-		return
-	}
 	d.cfg.logger.Info("jobx：任务执行完成", logx.Fields(
 		logx.String(fieldJobID, job.ID),
 		logx.String(fieldJobName, job.Name),
@@ -691,9 +683,6 @@ func (d *Dispatcher) logCompleted(job Job, duration time.Duration) {
 
 // logRetry 记录重试调度日志。
 func (d *Dispatcher) logRetry(job Job, retryAt time.Time, cause error) {
-	if d.cfg.logger == nil {
-		return
-	}
 	d.cfg.logger.Warn("jobx：任务失败，安排重试", logx.Fields(
 		logx.String(fieldJobID, job.ID),
 		logx.String(fieldJobName, job.Name),
@@ -705,9 +694,6 @@ func (d *Dispatcher) logRetry(job Job, retryAt time.Time, cause error) {
 
 // logSkipped 记录任务跳过日志。
 func (d *Dispatcher) logSkipped(job Job) {
-	if d.cfg.logger == nil {
-		return
-	}
 	d.cfg.logger.Warn("jobx：同名任务在途，本次提交被跳过", logx.Fields(
 		logx.String(fieldJobID, job.ID),
 		logx.String(fieldJobName, job.Name),
@@ -716,9 +702,6 @@ func (d *Dispatcher) logSkipped(job Job) {
 
 // logReplaced 记录任务替换日志。
 func (d *Dispatcher) logReplaced(job Job) {
-	if d.cfg.logger == nil {
-		return
-	}
 	d.cfg.logger.Warn("jobx：同名旧任务已被替换", logx.Fields(
 		logx.String(fieldJobID, job.ID),
 		logx.String(fieldJobName, job.Name),
@@ -727,9 +710,6 @@ func (d *Dispatcher) logReplaced(job Job) {
 
 // logShutdown 记录关闭完成日志（含仍执行中的任务数）。
 func (d *Dispatcher) logShutdown() {
-	if d.cfg.logger == nil {
-		return
-	}
 	remaining := 0
 	d.executing.Range(func(_, _ any) bool {
 		remaining++
@@ -742,9 +722,6 @@ func (d *Dispatcher) logShutdown() {
 
 // logError 记录任务失败日志。
 func (d *Dispatcher) logError(job Job, err error) {
-	if d.cfg.logger == nil {
-		return
-	}
 	d.cfg.logger.Error("jobx：任务执行失败", logx.Fields(
 		logx.String(fieldJobID, job.ID),
 		logx.String(fieldJobName, job.Name),

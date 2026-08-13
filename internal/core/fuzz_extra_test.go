@@ -38,12 +38,20 @@ func FuzzOptions(f *testing.F) {
 	f.Add(0, 0, 0, uint8(0))
 	f.Add(-1, 1, 1, uint8(99))
 	f.Fuzz(func(t *testing.T, workers, queueSize, payload int, mode uint8) {
-		_, _ = NewDispatcher(
-			WithWorkers(workers),
-			WithQueueSize(queueSize),
-			WithMaxPayloadBytes(payload),
+		// 限制规模并立即关闭，避免海量 worker goroutine 泄漏压垮 fuzz 进程。
+		w := workers%64 + 1
+		q := queueSize%4096 + 1
+		p := payload%(1<<20) + 1
+		d, err := NewDispatcher(
+			WithWorkers(w),
+			WithQueueSize(q),
+			WithMaxPayloadBytes(p),
 			WithQueueFullPolicy(QueueFullPolicy(mode%4)),
 			WithConflictPolicy(ConflictPolicy(mode%4)),
 		)
+		if err != nil {
+			return
+		}
+		_ = d.Shutdown(context.Background())
 	})
 }

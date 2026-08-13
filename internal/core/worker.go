@@ -62,13 +62,11 @@ func (d *Dispatcher) runEntry(entry *jobEntry) {
 			if r := recover(); r != nil {
 				err = errx.WrapCode(fmt.Errorf("处理器 panic：%v", r),
 					CodeExecutionFailed, "处理器执行失败")
-				if d.cfg.logger != nil {
-					d.cfg.logger.Error("jobx：处理器 panic", logx.Fields(
-						logx.String(fieldJobID, job.ID),
-						logx.String(fieldJobName, job.Name),
-						logx.Any("panic", r),
-					))
-				}
+				d.cfg.logger.Error("jobx：处理器 panic", logx.Fields(
+					logx.String(fieldJobID, job.ID),
+					logx.String(fieldJobName, job.Name),
+					logx.Any("panic", r),
+				))
 			}
 		}()
 		spanCtx, end := d.traceStart(ctx, job)
@@ -125,9 +123,6 @@ func (d *Dispatcher) scheduleRetry(entry *jobEntry, cause error) {
 
 // logStore 记录存储相关日志。
 func (d *Dispatcher) logStore(msg string, job Job) {
-	if d.cfg.logger == nil {
-		return
-	}
 	d.cfg.logger.Warn(msg, logx.Fields(
 		logx.String(fieldJobID, job.ID),
 		logx.String(fieldJobName, job.Name),
